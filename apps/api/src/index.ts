@@ -7,6 +7,7 @@ import type { Redis } from 'ioredis'
 import { buildApp } from './app.ts'
 import { createIdentityPlugin } from './auth/plugin.ts'
 import { createConfiguredSessionStore, type SessionRedisClient } from './auth/session-stores.ts'
+import { loadDotEnvIfPresent } from './config/dotenv.ts'
 import { ConfigurationError, loadConfig } from './config/load.ts'
 import {
   checkDatabaseReady,
@@ -74,6 +75,7 @@ async function main(): Promise<void> {
   let sessionRedis: Redis | undefined
 
   try {
+    loadDotEnvIfPresent()
     const config = loadConfig()
     // The pool opens lazily; readiness (spec 05 §3) is what proves Postgres answers.
     initializeDatabase(config.databaseUrl)

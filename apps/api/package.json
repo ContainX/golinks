@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
     "test:integration": "vitest run --passWithNoTests --config vitest.integration.config.ts",
-    "dev:db": "tsx scripts/dev-database.ts"
+    "dev:db": "tsx scripts/dev-database.ts",
+    "sign-in-link": "tsx scripts/sign-in-link.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.2",

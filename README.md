@@ -37,6 +37,13 @@ pnpm dev                      # API on :3000, web app on :5173 with a proxy to t
 
 Open http://localhost:5173. Health is at http://localhost:3000/_/health/ready.
 
+To sign in locally, print a link and open it in the browser:
+
+```bash
+pnpm --filter @golinks/api sign-in-link owner@widgets.test       # an admin, per INITIAL_ADMIN_EMAILS in .env
+pnpm --filter @golinks/api sign-in-link sam@widgets.test /handbook   # a member, landing on a keyword
+```
+
 Without Docker, `pnpm --filter @golinks/api dev:db` starts an embedded Postgres (the same binaries the integration tests use) with its data under `apps/api/.postgres-embedded`, applies migrations, and prints the `DATABASE_URL` to put in `.env`. Leave `REDIS_URL` unset; sessions then live in Postgres.
 
 Local sign-in uses test mode (`AUTH_TEST_MODE=true` in `.env`), which accepts a short-lived token for any email in `AUTH_TEST_DOMAINS` and never contacts an identity provider. To sign in through a real Okta application instead, set `AUTH_TEST_MODE=false` and configure the `OIDC_*` variables described below.

@@ -18,12 +18,31 @@ export default defineConfig({
     // Server-owned paths (spec 04 §1). Every other path the dev server is asked
     // for falls back to index.html, which is what makes /_/login, /_/admin/users
     // and /_/transfer/<token> load on a cold request.
-    proxy: {
-      '/_/api': api,
-      '/_/auth': api,
-      '/_/health': api,
-      '/_/opensearch.xml': api,
-    },
+    proxy: Object.fromEntries(
+      ['/_/api', '/_/auth', '/_/health', '/_/opensearch.xml'].map((prefix) => [
+        prefix,
+        {
+          target: api,
+          // The API redirects any host that is not its own to BASE_URL (spec 04
+          // §2), so the proxy must present the API's host, and it refuses
+          // state-changing requests whose Origin is not its own (spec 02 §6),
+          // so the proxy presents the API's origin too, as a same-origin page would.
+          changeOrigin: true,
+          configure: (proxy: {
+            on(
+              event: 'proxyReq',
+              listener: (request: import('node:http').ClientRequest) => void,
+            ): void
+          }) => {
+            proxy.on('proxyReq', (request) => {
+              if (request.getHeader('origin') !== undefined) request.setHeader('origin', api)
+              if (request.getHeader('referer') !== undefined)
+                request.setHeader('referer', `${api}/`)
+            })
+          },
+        },
+      ]),
+    ),
     fs: {
       strict: true,
       allow: [workspaceRoot],
