@@ -3,7 +3,22 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+      Placeholder title. An organization that sets a branding title (spec 06 §2)
+      replaces it at runtime once the app has loaded its settings.
+    -->
     <title>GoLinks</title>
+    <link rel="icon" href="/favicon.ico" />
+    <!--
+      Lets the browser register the keyword search template the API serves, so a
+      member can type the short host in the address bar (spec 11).
+    -->
+    <link
+      rel="search"
+      type="application/opensearchdescription+xml"
+      href="/_/opensearch.xml"
+      title="GoLinks"
+    />
   </head>
   <body>
     <div id="root"></div>

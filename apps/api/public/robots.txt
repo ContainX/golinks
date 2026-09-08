@@ -1,0 +1,4 @@
+# The service is an internal tool: nothing here is meant for a crawler, and every
+# path that is not an application route is a member's keyword.
+User-agent: *
+Disallow: /

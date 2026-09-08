@@ -1,0 +1,30 @@
+# The image is built from sources; everything generated is rebuilt inside it.
+**/node_modules
+**/dist
+**/coverage
+
+.git
+.gitignore
+.github
+.beads
+.claude
+.vscode
+.idea
+
+# Secrets never enter the image (spec 09 section 4).
+.env
+.env.*
+!.env.example
+
+# Test and tooling artifacts
+**/test-results
+**/playwright-report
+.postgres-embedded
+**/*.log
+**/.DS_Store
+
+# Not needed at build or run time
+docs
+Dockerfile
+.dockerignore
+docker-compose.yml

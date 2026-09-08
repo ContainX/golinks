@@ -1,0 +1,97 @@
+# Local development services for GoLinks (spec 09 section 2).
+#
+#   docker compose up -d                  postgres and redis only; the API and web
+#                                         app run on the host with hot reload
+#   docker compose --profile full up -d   also builds and runs the service container
+#
+# Published ports are bound to the loopback interface so nothing is reachable from
+# outside this machine.
+
+name: golinks
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: golinks
+      POSTGRES_PASSWORD: golinks
+      POSTGRES_DB: golinks
+    ports:
+      - '127.0.0.1:5432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      # Installs pg_trgm and citext and creates the golinks_test database.
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/10-golinks.sql:ro
+    healthcheck:
+      # Over TCP, not the Unix socket: during first-run initialisation the server listens on
+      # the socket only, so a socket check would report healthy before init.sql has run.
+      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -U golinks -d golinks']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # Sessions and caches only; nothing here needs to survive a restart (spec 09 section 9).
+    command: ['redis-server', '--save', '', '--appendonly', 'no']
+    ports:
+      - '127.0.0.1:6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+
+  app:
+    # Only started by `docker compose --profile full up`, for end-to-end tests and demos.
+    profiles: ['full']
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    # Long syntax, so a missing .env is not an error. Needs Compose 2.24 or newer.
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # Inside the compose network the services answer to their own names, so the
+      # host-facing values in .env are overridden here.
+      DATABASE_URL: postgres://golinks:golinks@postgres:5432/golinks
+      REDIS_URL: redis://redis:6379
+      BASE_URL: ${BASE_URL:-http://localhost:3000}
+      PORT: '3000'
+      # Compose is a development and demo environment, so the container migrates itself
+      # on boot (spec 09 section 3).
+      MIGRATE_ON_START: 'true'
+      # End-to-end runs sign in through test mode (spec 10 section 1), which the service
+      # refuses to combine with NODE_ENV=production (spec 02 section 8). The image
+      # defaults to production, so the full profile turns it back down here.
+      NODE_ENV: development
+      SESSION_SECRET: ${SESSION_SECRET:-development-only-session-secret-change-me}
+      AUTH_TEST_MODE: 'true'
+      AUTH_TEST_SECRET: ${AUTH_TEST_SECRET:-development-only-test-sign-in-secret}
+      AUTH_TEST_DOMAINS: ${AUTH_TEST_DOMAINS:-widgets.test,gizmos.test}
+    ports:
+      - '127.0.0.1:3000:3000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - '-e'
+        - "fetch('http://127.0.0.1:3000/_/health/live').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+
+volumes:
+  postgres-data:
