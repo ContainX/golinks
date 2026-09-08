@@ -21,6 +21,7 @@ import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 import { useNavigate } from 'react-router'
 import { isApiError, isApiErrorCode } from '../../api/errors.ts'
+import { FONT_MONO } from '../../app/theme.ts'
 import { useAcceptTransfer, useTransferPreview } from '../../queries/transfers.ts'
 import { formatExpiry, formatFullDate } from './format.ts'
 import { useNotify } from './Notices.tsx'
@@ -197,7 +198,7 @@ function Field({ label, value, mono = false }: { label: string; value: string; m
       </Typography>
       <Typography
         variant="body2"
-        sx={{ wordBreak: 'break-all', ...(mono ? { fontFamily: 'monospace' } : {}) }}
+        sx={{ wordBreak: 'break-all', ...(mono ? { fontFamily: FONT_MONO } : {}) }}
       >
         {value}
       </Typography>

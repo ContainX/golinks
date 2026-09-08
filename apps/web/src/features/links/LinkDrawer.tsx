@@ -21,6 +21,7 @@ import Stack from '@mui/material/Stack'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 import { isApiErrorCode } from '../../api/errors.ts'
+import { FONT_MONO } from '../../app/theme.ts'
 import { useLink } from '../../queries/links.ts'
 import { copyToClipboard } from './clipboard.ts'
 import { AdminBadge, LinkDetail } from './LinkDetail.tsx'
@@ -86,7 +87,7 @@ export function LinkDrawer({ linkId, organization, onClose, onOpenLink }: LinkDr
       >
         <Box sx={{ minWidth: 0 }}>
           <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-            <Typography variant="h6" component="h2" sx={{ fontFamily: 'monospace' }}>
+            <Typography variant="h6" component="h2" sx={{ fontFamily: FONT_MONO }}>
               {link.data?.fullPath ?? 'Link'}
             </Typography>
             {showsHeaderActions && link.data ? (

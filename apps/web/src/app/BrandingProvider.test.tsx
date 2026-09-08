@@ -1,4 +1,4 @@
-import { createTheme, useTheme } from '@mui/material/styles'
+import { useTheme } from '@mui/material/styles'
 import { render, screen, waitFor } from '@testing-library/react'
 import { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -8,11 +8,12 @@ import { brandingFixture, meFixture } from '../test/fixtures.ts'
 import { createTestQueryClient } from '../test/render.tsx'
 import { AppProviders } from './AppProviders.tsx'
 import { useBranding } from './BrandingProvider.tsx'
+import { createAppTheme } from './theme.ts'
 
 const SERVED_TITLE = 'GoLinks'
 const SERVED_ICON = '/favicon.ico'
 
-const stock = createTheme()
+const stock = createAppTheme()
 
 /** Reports what the tree below the provider actually sees. */
 function BrandingProbe() {

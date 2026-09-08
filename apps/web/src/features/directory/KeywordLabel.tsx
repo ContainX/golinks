@@ -12,6 +12,7 @@ import Box from '@mui/material/Box'
 import Chip from '@mui/material/Chip'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
+import { FONT_MONO } from '../../app/theme.ts'
 
 /** What being unlisted means, in one sentence (spec 03 §4). */
 export const UNLISTED_EXPLANATION =
@@ -39,7 +40,16 @@ export function KeywordLabel({
       <Typography
         component="span"
         variant="body2"
-        sx={{ fontWeight: 500, fontFamily: 'monospace', whiteSpace: 'nowrap' }}
+        sx={{
+          fontWeight: 500,
+          fontFamily: FONT_MONO,
+          fontSize: '0.8125rem',
+          whiteSpace: 'nowrap',
+          px: 1,
+          py: 0.375,
+          borderRadius: 1.5,
+          bgcolor: 'action.hover',
+        }}
       >
         <Box component="span" sx={{ color: 'text.secondary' }}>
           {namespace}/
@@ -48,7 +58,12 @@ export function KeywordLabel({
       </Typography>
       {isProgrammatic ? (
         <Tooltip title={PROGRAMMATIC_EXPLANATION}>
-          <Chip label="%s" size="small" variant="outlined" sx={{ height: 20, fontSize: 11 }} />
+          <Chip
+            label="%s"
+            size="small"
+            color="primary"
+            sx={{ height: 20, fontSize: 11, fontFamily: FONT_MONO }}
+          />
         </Tooltip>
       ) : null}
       {isUnlisted ? (

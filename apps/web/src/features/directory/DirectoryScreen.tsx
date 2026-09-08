@@ -147,6 +147,14 @@ export function DirectoryScreen({ organization }: DirectoryScreenProps) {
   return (
     <Box sx={{ p: { xs: 2, md: 3 }, pb: { xs: 12, md: 3 } }}>
       <Stack spacing={2}>
+        <Box>
+          <Typography variant="h5" component="h1">
+            Directory
+          </Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
+            {`Type ${organization.shortHost}/keyword in the browser to use a link.`}
+          </Typography>
+        </Box>
         {isNarrow ? null : (
           <CreateLinkBar
             organization={organization}

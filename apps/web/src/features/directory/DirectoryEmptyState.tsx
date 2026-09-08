@@ -12,6 +12,7 @@ import SearchOffIcon from '@mui/icons-material/SearchOff'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Typography from '@mui/material/Typography'
+import { FONT_MONO } from '../../app/theme.ts'
 
 export interface DirectoryOnboardingProps {
   /** Hostname members type, for example `go`. */
@@ -38,7 +39,7 @@ export function DirectoryOnboarding({
       </Typography>
       <Typography color="text.secondary" sx={{ mt: 1 }}>
         A link gives a page a short name everyone can remember. Create{' '}
-        <Box component="span" sx={{ fontFamily: 'monospace' }}>
+        <Box component="span" sx={{ fontFamily: FONT_MONO }}>
           {example}
         </Box>{' '}
         and anyone in your organization can type it into the address bar and land on the page it
@@ -46,22 +47,22 @@ export function DirectoryOnboarding({
       </Typography>
       <Typography color="text.secondary" sx={{ mt: 2 }}>
         For{' '}
-        <Box component="span" sx={{ fontFamily: 'monospace' }}>
+        <Box component="span" sx={{ fontFamily: FONT_MONO }}>
           {shortHost}/
         </Box>{' '}
         to work in a browser, the name{' '}
-        <Box component="span" sx={{ fontFamily: 'monospace' }}>
+        <Box component="span" sx={{ fontFamily: FONT_MONO }}>
           {shortHost}
         </Box>{' '}
         has to point at this service on your network. Until it does, every keyword also resolves at{' '}
-        <Box component="span" sx={{ fontFamily: 'monospace', wordBreak: 'break-all' }}>
+        <Box component="span" sx={{ fontFamily: FONT_MONO, wordBreak: 'break-all' }}>
           {baseUrl}
         </Box>
         .
       </Typography>
       <Typography color="text.secondary" sx={{ mt: 2 }}>
         Use the bar above to make the first one. Keywords without a namespace live in{' '}
-        <Box component="span" sx={{ fontFamily: 'monospace' }}>
+        <Box component="span" sx={{ fontFamily: FONT_MONO }}>
           {defaultNamespace}
         </Box>
         .

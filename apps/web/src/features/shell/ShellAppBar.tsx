@@ -73,7 +73,17 @@ export function ShellAppBar({ title, logoUrl, me, colorScheme }: ShellAppBarProp
   const hasNavigation = sections.length > 0
 
   return (
-    <AppBar position="static" enableColorOnDark>
+    <AppBar
+      position="static"
+      color="inherit"
+      elevation={0}
+      sx={{
+        bgcolor: 'background.paper',
+        color: 'text.primary',
+        borderBottom: 1,
+        borderColor: 'divider',
+      }}
+    >
       <Toolbar sx={{ gap: { xs: 1, md: 2 } }}>
         {hasNavigation ? (
           <IconButton
@@ -89,11 +99,25 @@ export function ShellAppBar({ title, logoUrl, me, colorScheme }: ShellAppBarProp
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0 }}>
           {logoUrl === null ? (
-            <LinkIcon />
+            <Box
+              aria-hidden
+              sx={{
+                width: 30,
+                height: 30,
+                borderRadius: 2,
+                bgcolor: 'primary.main',
+                color: 'primary.contrastText',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <LinkIcon fontSize="small" />
+            </Box>
           ) : (
             <Box component="img" src={logoUrl} alt="" sx={{ height: 24, width: 'auto' }} />
           )}
-          <Typography variant="h6" component="p" noWrap sx={{ fontWeight: 500 }}>
+          <Typography variant="h6" component="p" noWrap>
             {title}
           </Typography>
           {me === null ? null : (
@@ -101,17 +125,12 @@ export function ShellAppBar({ title, logoUrl, me, colorScheme }: ShellAppBarProp
               <Divider
                 orientation="vertical"
                 flexItem
-                sx={{
-                  borderColor: 'currentColor',
-                  opacity: 0.4,
-                  my: 1.5,
-                  display: { xs: 'none', sm: 'block' },
-                }}
+                sx={{ my: 1.75, display: { xs: 'none', sm: 'block' } }}
               />
               <Typography
                 variant="body2"
                 noWrap
-                sx={{ opacity: 0.72, display: { xs: 'none', sm: 'block' } }}
+                sx={{ color: 'text.secondary', display: { xs: 'none', sm: 'block' } }}
               >
                 {me.organization.id}
               </Typography>
@@ -138,9 +157,9 @@ export function ShellAppBar({ title, logoUrl, me, colorScheme }: ShellAppBarProp
                     alignSelf: 'stretch',
                     borderRadius: 0,
                     px: 1.5,
-                    opacity: isActive ? 1 : 0.72,
+                    color: isActive ? 'text.primary' : 'text.secondary',
                     borderBottom: '2px solid',
-                    borderBottomColor: isActive ? 'currentColor' : 'transparent',
+                    borderBottomColor: isActive ? 'primary.main' : 'transparent',
                   }}
                 >
                   {section.label}
@@ -155,7 +174,7 @@ export function ShellAppBar({ title, logoUrl, me, colorScheme }: ShellAppBarProp
                 rel="noreferrer"
                 color="inherit"
                 endIcon={<OpenInNewIcon sx={{ fontSize: 16 }} />}
-                sx={{ alignSelf: 'stretch', borderRadius: 0, px: 1.5, opacity: 0.72 }}
+                sx={{ alignSelf: 'stretch', borderRadius: 0, px: 1.5, color: 'text.secondary' }}
               >
                 {link.text}
               </Button>

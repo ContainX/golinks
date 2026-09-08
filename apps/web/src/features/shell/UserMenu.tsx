@@ -76,17 +76,14 @@ export function UserMenu({ user, organizationId, colorScheme }: UserMenuProps) {
         sx={{ textTransform: 'none', gap: 1, pl: 0.5 }}
       >
         <Avatar
-          // Outlined rather than filled: the app bar is painted in the
-          // organization's primary color, and a border in the bar's own text
-          // color is legible whatever that color turns out to be.
+          // The one solid use of the brand color in the app bar, so the account
+          // control reads as the organization's whatever its color is.
           sx={{
             width: 32,
             height: 32,
             fontSize: 13,
-            fontWeight: 500,
-            bgcolor: 'transparent',
-            color: 'inherit',
-            border: '1px solid currentColor',
+            bgcolor: 'primary.main',
+            color: 'primary.contrastText',
           }}
         >
           {initials(user.email)}

@@ -9,6 +9,7 @@
 
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
+import { FONT_MONO } from '../../app/theme.ts'
 import { PLACEHOLDER_SAMPLE } from './validation.ts'
 
 export interface PlaceholderHelpProps {
@@ -40,10 +41,7 @@ export function PlaceholderHelp({
         destination. The destination needs one <strong>%s</strong> for each one in the keyword.
       </Typography>
       {destinationPreview === null ? null : (
-        <Typography
-          variant="body2"
-          sx={{ mt: 0.5, fontFamily: 'monospace', wordBreak: 'break-all' }}
-        >
+        <Typography variant="body2" sx={{ mt: 0.5, fontFamily: FONT_MONO, wordBreak: 'break-all' }}>
           {prefix}
           {keywordPreview} goes to {destinationPreview}
         </Typography>

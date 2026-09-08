@@ -20,6 +20,7 @@ import { useTheme } from '@mui/material/styles'
 import Typography from '@mui/material/Typography'
 import useMediaQuery from '@mui/material/useMediaQuery'
 import { useState } from 'react'
+import { FONT_MONO } from '../../app/theme.ts'
 
 /** The path the API serves the search-engine description from (spec 11 §3). */
 const OPENSEARCH_PATH = '/_/opensearch.xml'
@@ -47,7 +48,7 @@ function Code({ children }: { children: string }) {
     <Box
       component="code"
       sx={{
-        fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+        fontFamily: FONT_MONO,
         fontSize: '0.85em',
         px: 0.5,
         py: 0.15,

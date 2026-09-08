@@ -15,7 +15,6 @@
 
 import type { Link } from '@golinks/shared/api'
 import Box from '@mui/material/Box'
-import Typography from '@mui/material/Typography'
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router'
 import { DirectoryScreen } from '../features/directory/DirectoryScreen.tsx'
 import { LinkDrawer } from '../features/links/LinkDrawer.tsx'
@@ -24,17 +23,6 @@ import { useOrganizationContext } from '../features/links/organization.ts'
 import { UnknownKeywordScreen } from '../features/links/UnknownKeywordScreen.tsx'
 
 /** Kept for screen readers and page structure; the visible title is the app bar's. */
-const VISUALLY_HIDDEN = {
-  position: 'absolute',
-  width: 1,
-  height: 1,
-  padding: 0,
-  margin: -1,
-  overflow: 'hidden',
-  clipPath: 'inset(50%)',
-  whiteSpace: 'nowrap',
-  border: 0,
-} as const
 
 /** Marks a navigation that came from the directory, so closing can go back. */
 interface DirectoryLocationState {
@@ -83,9 +71,6 @@ export function DirectoryPage() {
 
   return (
     <NoticeProvider>
-      <Typography variant="h1" component="h1" sx={VISUALLY_HIDDEN}>
-        Directory
-      </Typography>
       <Box>
         <DirectoryScreen organization={organization} />
         {id === undefined ? null : (
