@@ -28,6 +28,7 @@ import { useState } from 'react'
 import type { ReassignLinkFailure } from '../../../queries/admin.ts'
 import { useAdminUserLinks, useAdminUsers, useReassignLinks } from '../../../queries/admin.ts'
 import { formatLinkCount } from '../adminFormat.ts'
+import { useDebouncedValue } from '../useDebouncedValue.ts'
 
 /** How many links are named before the list turns into a count. */
 const NAMED_LINKS = 5
@@ -46,10 +47,18 @@ export function ReassignLinksDialog({ user, onClose, onReassigned }: ReassignLin
   const [total, setTotal] = useState(0)
   const [failures, setFailures] = useState<ReassignLinkFailure[]>([])
 
+  const [search, setSearch] = useState('')
+  const debounced = useDebouncedValue(search)
+
   const owned = useAdminUserLinks(user.id)
-  // Only an enabled member may own a link (spec 05 §4, `owner_invalid`), so the
-  // chooser lists exactly those, minus the member the links are leaving.
-  const candidates = useAdminUsers({ enabled: true, limit: MAX_LIST_LIMIT })
+  // Only an enabled member may own a link (spec 05 §4, `owner_invalid`), so the chooser
+  // lists exactly those, minus the member the links are leaving. The search is the API's,
+  // so an organization larger than one page can still reach every candidate.
+  const candidates = useAdminUsers({
+    enabled: true,
+    limit: MAX_LIST_LIMIT,
+    ...(debounced.trim().length > 0 ? { q: debounced.trim() } : {}),
+  })
   const reassign = useReassignLinks()
 
   const links: Link[] = owned.data?.items ?? []
@@ -99,8 +108,11 @@ export function ReassignLinksDialog({ user, onClose, onReassigned }: ReassignLin
             onChange={(_event, value) => setOwner(value)}
             getOptionLabel={(option) => option.email}
             isOptionEqualToValue={(option, value) => option.id === value.id}
+            onInputChange={(_event, next) => setSearch(next)}
+            filterOptions={(all) => all}
             disabled={reassign.isPending}
-            loading={candidates.isPending}
+            loading={candidates.isFetching}
+            noOptionsText={debounced.trim().length > 0 ? 'No member matches' : 'No other members'}
             renderInput={(params) => <TextField {...params} label="New owner" />}
           />
 

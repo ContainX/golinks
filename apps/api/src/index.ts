@@ -112,28 +112,35 @@ async function main(): Promise<void> {
       })
     }
 
+    // Hooks and jobs are attached while the app is being built: once `buildApp` has awaited
+    // readiness, Fastify refuses further hooks.
     app = await buildApp({
       config,
       sessionStore,
       organizationSettings,
       readinessChecks,
-      plugins: [createIdentityPlugin()],
+      plugins: [
+        createIdentityPlugin(),
+        (app) => {
+          app.addHook('onClose', async () => {
+            sessionRedis?.disconnect()
+            await closeDatabase()
+          })
+        },
+        (app) => {
+          // Housekeeping runs inside the serving process (spec 09 §1); the advisory lock in
+          // each job is what keeps a fleet of replicas from doing the same work several times.
+          startBackgroundJobs(app, { db: getDatabase(), sql: getSql(), sessionStore })
+        },
+      ],
     })
     deferred.attach(app.log)
-    app.addHook('onClose', async () => {
-      sessionRedis?.disconnect()
-      await closeDatabase()
-    })
     // Operators need to see what the process actually decided (spec 09 §4).
     app.log.info({ config: describeConfig(config) }, 'effective configuration')
     app.log.info(
       { store: sessionRedis === undefined ? 'postgres' : 'redis' },
       'session store selected',
     )
-
-    // Housekeeping runs inside the serving process (spec 09 §1); the advisory lock in each job
-    // is what keeps a fleet of replicas from doing the same work several times over.
-    startBackgroundJobs(app, { db: getDatabase(), sql: getSql(), sessionStore })
 
     await app.listen({ port: config.port, host: config.host })
   } catch (error) {

@@ -100,9 +100,27 @@ export function registerSignOutRoutes(app: GoLinksApp, registry?: ProviderRegist
     return reply.header('cache-control', 'no-store').redirect(location, 302)
   }
 
+  // The web app signs out by submitting a form, so the POST arrives with an empty
+  // urlencoded body (spec 02 §4, §6). The route reads nothing from a body, so the parser only
+  // has to accept and drop one. It is registered on the instance (a scoped plugin would mark
+  // the instance started before the entry point finishes wiring it); the API's JSON-only rule
+  // is enforced in the request hook before any body is parsed, so it is unaffected.
+  for (const contentType of FORM_CONTENT_TYPES) {
+    if (!app.hasContentTypeParser(contentType)) {
+      app.addContentTypeParser(
+        contentType,
+        { parseAs: 'string', bodyLimit: FORM_BODY_LIMIT_BYTES },
+        (_request, _body, done) => done(null, undefined),
+      )
+    }
+  }
   for (const method of ['POST', 'GET'] as const) {
     // No HEAD alongside the GET: it would be a way to destroy a session that the Origin check
     // of spec 02 §6 does not cover, and nothing has a use for the headers of a sign-out.
     app.route({ method, url: SIGN_OUT_PATH, exposeHeadRoute: false, handler: signOut })
   }
 }
+
+/** What an HTML form posts, with or without files; a sign-out form carries no fields. */
+export const FORM_CONTENT_TYPES = ['application/x-www-form-urlencoded', 'multipart/form-data']
+export const FORM_BODY_LIMIT_BYTES = 1024

@@ -9,8 +9,23 @@ import { baseURL } from '../../playwright.config.ts'
 export const TEST_SECRET = process.env.E2E_TEST_SECRET ?? 'development-only-test-sign-in-secret'
 export const ORGANIZATIONS = { widgets: 'widgets.test', gizmos: 'gizmos.test' } as const
 
-export function uniqueEmail(domain: string): string {
-  return `member-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@${domain}`
+/**
+ * The address the instance under test is told to make an admin (`INITIAL_ADMIN_EMAILS`).
+ *
+ * Every other address in the test domains signs in as an ordinary member, so a scenario that
+ * needs both roles asks for this one and any unique address.
+ */
+export const ADMIN_EMAIL = `jane@${ORGANIZATIONS.widgets}`
+
+/**
+ * An address nobody else in this run will use.
+ *
+ * `prefix` decides where the member sorts: the organization's member list is alphabetical by
+ * address (spec 05 §2.3), so a screen that pages through members finds an `a-` member on the
+ * first page however many members the database has accumulated.
+ */
+export function uniqueEmail(domain: string, prefix = 'member'): string {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@${domain}`
 }
 
 export function uniqueKeyword(): string {

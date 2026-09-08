@@ -94,6 +94,24 @@ describe('signing out locally', () => {
     expect(jar.get(SESSION_COOKIE_NAME)).toBeUndefined()
   })
 
+  it('accepts the empty form body a browser submits from the user menu', async () => {
+    app = await buildOidcApp()
+    const jar = await signedInBrowser(app)
+
+    const response = await app.inject({
+      method: 'POST',
+      url: SIGN_OUT_PATH,
+      headers: { ...jar.headers(ORIGIN), 'content-type': 'application/x-www-form-urlencoded' },
+      payload: '',
+    })
+
+    expect(response.statusCode).toBe(302)
+    expect(response.headers.location).toBe(SIGNED_OUT_PATH)
+    jar.accept(response.headers['set-cookie'])
+    const me = await app.inject({ method: 'GET', url: ME_URL, headers: jar.headers() })
+    expect(me.statusCode).toBe(401)
+  })
+
   it('leaves the session unusable even for a browser that keeps the cookie', async () => {
     app = await buildOidcApp()
     const jar = await signedInBrowser(app)
