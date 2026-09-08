@@ -28,6 +28,8 @@ export type UserRoleSource = z.infer<typeof UserRoleSourceSchema>
 export const UserPreferencesSchema = z.strictObject({
   /** Ids of notices the member has closed, for example the short-host setup notice. */
   dismissedNotices: z.array(z.string().trim().min(1).max(100)).max(200).optional(),
+  /** Which color scheme the app renders in; `system` follows the device preference. */
+  colorScheme: z.enum(['system', 'light', 'dark']).optional(),
 })
 export type UserPreferences = z.infer<typeof UserPreferencesSchema>
 

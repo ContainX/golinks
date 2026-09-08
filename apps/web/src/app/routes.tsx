@@ -47,6 +47,8 @@ export const appRoutes: RouteObject[] = [
           // browser here when a provider must be chosen or an error shown, and
           // sign-out lands here with `?signedOut=1` (spec 02 §2, §4).
           { path: 'login', element: <SignInPage /> },
+          // A link's own URL: the directory with that link's drawer open (ADR 0002).
+          { path: 'links/:id', element: <DirectoryPage /> },
           // Accepting an ownership transfer (spec 08 §6, spec 05 §2.4).
           { path: 'transfer/:token', element: <TransferPage /> },
           {
