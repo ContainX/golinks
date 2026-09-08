@@ -2,12 +2,26 @@
 
 import type { DeploymentConfig } from '@golinks/shared/config'
 import { describeConfig } from '@golinks/shared/config'
+import type { FastifyBaseLogger } from 'fastify'
 import type { Redis } from 'ioredis'
 import { buildApp } from './app.ts'
 import { createIdentityPlugin } from './auth/plugin.ts'
 import { createConfiguredSessionStore, type SessionRedisClient } from './auth/session-stores.ts'
 import { ConfigurationError, loadConfig } from './config/load.ts'
-import { checkDatabaseReady, closeDatabase, getDatabase, initializeDatabase } from './db/client.ts'
+import {
+  checkDatabaseReady,
+  closeDatabase,
+  getDatabase,
+  getSql,
+  initializeDatabase,
+} from './db/client.ts'
+import { startBackgroundJobs } from './jobs/index.ts'
+import {
+  createRedisSettingsCache,
+  type SettingsRedisClient,
+  type SharedSettingsCache,
+} from './organizations/settings-cache.ts'
+import { createOrganizationSettingsService } from './organizations/settings-service.ts'
 import type { ReadinessCheck } from './types.ts'
 
 /**
@@ -23,6 +37,38 @@ async function openSessionRedis(config: DeploymentConfig): Promise<Redis | undef
   return new RedisClient(config.redisUrl, { maxRetriesPerRequest: 3, lazyConnect: true })
 }
 
+/** The two levels the settings service and its shared cache write at. */
+interface StartupLogger {
+  info(context: Record<string, unknown>, message: string): void
+  warn(context: Record<string, unknown>, message: string): void
+}
+
+interface DeferredLogger {
+  logger: StartupLogger
+  /** Points the logger at the app's stream, once there is one. */
+  attach(target: FastifyBaseLogger): void
+}
+
+/**
+ * A logger for the services built before the app exists.
+ *
+ * The settings service and its shared cache are constructed first, so that `buildApp` can be
+ * handed a finished one, but neither says anything before the server is listening. This forwards
+ * to the real logger from the moment there is one, and drops whatever came earlier.
+ */
+function createDeferredLogger(): DeferredLogger {
+  let target: FastifyBaseLogger | undefined
+  return {
+    logger: {
+      info: (context, message) => target?.info(context, message),
+      warn: (context, message) => target?.warn(context, message),
+    },
+    attach(next) {
+      target = next
+    },
+  }
+}
+
 async function main(): Promise<void> {
   let app: Awaited<ReturnType<typeof buildApp>>
   let sessionRedis: Redis | undefined
@@ -36,6 +82,21 @@ async function main(): Promise<void> {
     const sessionStore = createConfiguredSessionStore(config, {
       database: getDatabase(),
       redis: sessionRedis as SessionRedisClient | undefined,
+    })
+
+    // Spec 06 §4: the five-minute shared layer under the thirty-second in-process one. It rides
+    // on the session connection, which is the client this process already has; unlike sessions,
+    // a settings read that fails simply goes to the database.
+    const deferred = createDeferredLogger()
+    const sharedSettingsCache: SharedSettingsCache | undefined =
+      sessionRedis === undefined
+        ? undefined
+        : createRedisSettingsCache(sessionRedis as SettingsRedisClient, {
+            logger: deferred.logger,
+          })
+    const organizationSettings = createOrganizationSettingsService(getDatabase(), {
+      logger: deferred.logger,
+      ...(sharedSettingsCache === undefined ? {} : { sharedCache: sharedSettingsCache }),
     })
 
     const readinessChecks: ReadinessCheck[] = [
@@ -54,9 +115,11 @@ async function main(): Promise<void> {
     app = await buildApp({
       config,
       sessionStore,
+      organizationSettings,
       readinessChecks,
       plugins: [createIdentityPlugin()],
     })
+    deferred.attach(app.log)
     app.addHook('onClose', async () => {
       sessionRedis?.disconnect()
       await closeDatabase()
@@ -67,6 +130,11 @@ async function main(): Promise<void> {
       { store: sessionRedis === undefined ? 'postgres' : 'redis' },
       'session store selected',
     )
+
+    // Housekeeping runs inside the serving process (spec 09 §1); the advisory lock in each job
+    // is what keeps a fleet of replicas from doing the same work several times over.
+    startBackgroundJobs(app, { db: getDatabase(), sql: getSql(), sessionStore })
+
     await app.listen({ port: config.port, host: config.host })
   } catch (error) {
     sessionRedis?.disconnect()

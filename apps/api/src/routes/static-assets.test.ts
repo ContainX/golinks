@@ -74,7 +74,7 @@ describe('single-page app hosting', () => {
   it('never serves the shell for an unknown server route', async () => {
     app = await buildTestApp({ webDistPath })
 
-    const response = await app.inject({ method: 'GET', url: '/_/api/v1/links' })
+    const response = await app.inject({ method: 'GET', url: '/_/api/v1/nothing-here' })
 
     expect(response.statusCode).toBe(404)
     expect(response.json().error.code).toBe('not_found')

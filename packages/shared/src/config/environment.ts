@@ -246,6 +246,7 @@ const environmentVariables = z.object({
   AUTH_TEST_DOMAINS: listVariable({ lowercase: true }).default([]),
 
   METRICS_ENABLED: booleanVariable.default(false),
+  JOBS_ENABLED: booleanVariable.default(true),
   WEB_DIST_PATH: z.string().trim().min(1).optional(),
 })
 
@@ -303,6 +304,8 @@ export interface DeploymentConfig {
     domains: string[]
   }
   metrics: { enabled: boolean }
+  /** Whether this replica runs the scheduled background jobs (spec 09 §1). */
+  jobs: { enabled: boolean }
   webDistPath: string | undefined
 }
 
@@ -382,6 +385,7 @@ function toDeploymentConfig(variables: z.output<typeof environmentVariables>): D
       domains: variables.AUTH_TEST_DOMAINS,
     },
     metrics: { enabled: variables.METRICS_ENABLED },
+    jobs: { enabled: variables.JOBS_ENABLED },
     webDistPath: variables.WEB_DIST_PATH,
   }
 }

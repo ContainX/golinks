@@ -47,12 +47,22 @@ export function bounceLocation(baseUrl: string, requestUrl: string): string {
  * every route, and it is installed before the session plugin so that a request under another
  * name is answered without a cookie ever being read.
  */
+declare module 'fastify' {
+  interface FastifyRequest {
+    /** True once the short-host bounce has answered this request; later hooks skip it. */
+    bounced: boolean
+  }
+}
+
 export function registerShortHostBounce(app: FastifyInstance, config: DeploymentConfig): void {
   const { canonicalHost, baseUrl } = config
 
+  app.decorateRequest('bounced', false)
   app.addHook('onRequest', async (request, reply) => {
     if (isCanonicalHost(request.host, canonicalHost)) return
     if (isBounceExempt(pathnameOf(request.url))) return
+
+    request.bounced = true
 
     reply.header('cache-control', 'no-store')
     reply.redirect(bounceLocation(baseUrl, request.url), BOUNCE_STATUS)

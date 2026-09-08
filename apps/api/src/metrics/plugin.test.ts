@@ -28,6 +28,15 @@ describe('metrics', () => {
     await app.close()
   })
 
+  it('counts a bounced keyword request once, as a bounce', async () => {
+    const app = await buildTestApp()
+    await app.inject({ method: 'GET', url: '/handbook', headers: { host: 'go' } })
+    const body = (await app.metrics.render()).body
+    expect(body).toMatch(/golinks_resolver_outcomes_total\{outcome="bounce"\} 1/)
+    expect(body).not.toMatch(/golinks_resolver_outcomes_total\{outcome="hit"\}/)
+    await app.close()
+  })
+
   it('keeps the instruments but hides the endpoint when disabled', async () => {
     const app = await buildTestApp()
     await app.inject({ method: 'GET', url: '/_/health/live' })

@@ -16,7 +16,8 @@
     "lint:fix": "biome check --write .",
     "format": "biome format --write .",
     "test": "pnpm -r test",
-    "test:api": "pnpm --filter @golinks/api test:integration"
+    "test:api": "pnpm --filter @golinks/api test:integration",
+    "test:e2e": "pnpm --filter @golinks/e2e test:e2e"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.12",

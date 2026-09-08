@@ -4,15 +4,18 @@
 // in: an organization with an owner, an admin, and a bystander, the settings document the
 // write is judged against, and the audit rows it left behind.
 
+import type { Link } from '@golinks/shared/api'
+import type { EnvironmentInput } from '@golinks/shared/config'
 import type { EvaluatedKeyword, KeywordRules } from '@golinks/shared/keywords'
 import { evaluateKeyword } from '@golinks/shared/keywords'
 import { DEFAULT_ORGANIZATION_SETTINGS, type OrganizationSettings } from '@golinks/shared/settings'
 import { and, asc, eq } from 'drizzle-orm'
 import type { Database } from '../../src/db/client.ts'
-import { type AuditEventRow, auditEvents, type UserRow } from '../../src/db/schema/index.ts'
+import { type AuditEventRow, auditEvents, type UserRow, users } from '../../src/db/schema/index.ts'
 import type { LinkWriteContext } from '../../src/links/index.ts'
-import type { CurrentMember } from '../../src/types.ts'
+import type { CurrentMember, GoLinksApp } from '../../src/types.ts'
 import { insertOrganization, insertUser, TEST_ORGANIZATION_IDS } from './fixtures.ts'
+import { buildIdentityApp, type SignedInSession, signIn } from './sign-in.ts'
 
 /** One organization with the three kinds of caller spec 03 §5 distinguishes. */
 export interface LinkWorld {
@@ -120,4 +123,86 @@ export async function readAuditEvents(
     .from(auditEvents)
     .where(and(...conditions))
     .orderBy(asc(auditEvents.id))
+}
+
+// --- the situation an HTTP test acts in -------------------------------------
+
+/** The group a test token names when it signs a member in as an administrator. */
+export const TEST_ADMIN_GROUP = 'golinks-admins'
+
+/**
+ * A silent instance with the identity foundation and the API routes, wired so that a change
+ * to a member's row is seen at once: the member cache would otherwise hold a stale role for a
+ * minute, which is a lifetime inside one test.
+ */
+export function buildLinksApp(
+  database: Database,
+  environment: EnvironmentInput = {},
+): Promise<GoLinksApp> {
+  return buildIdentityApp({ database, environment, identity: { memberCacheTtlMs: 0 } })
+}
+
+/** A signed-in member of an HTTP test: their session headers and the row behind them. */
+export interface SignedInMember {
+  session: SignedInSession
+  user: UserRow
+  member: CurrentMember
+  /** Headers a read carries. */
+  headers: { cookie: string }
+  /** Headers a write carries: the cookie, the Origin, and the content type (spec 02 §6). */
+  apiHeaders: { cookie: string; origin: string; 'content-type': string }
+}
+
+export interface SignInMemberOptions {
+  email: string
+  /** Signs in through a group that confers the admin role (spec 01 §2.3). */
+  admin?: boolean
+}
+
+/**
+ * Signs a member in through the test endpoint and reads back the row it created, so a test can
+ * name ids and addresses without reaching past the HTTP surface to make members.
+ */
+export async function signInMember(
+  app: GoLinksApp,
+  db: Database,
+  options: SignInMemberOptions,
+): Promise<SignedInMember> {
+  const session = await signIn(app, {
+    email: options.email,
+    ...(options.admin === true
+      ? { groups: [TEST_ADMIN_GROUP], adminGroups: [TEST_ADMIN_GROUP] }
+      : {}),
+  })
+
+  const rows = await db.select().from(users).where(eq(users.email, options.email)).limit(1)
+  const user = rows[0]
+  if (user === undefined) throw new Error(`Signing in ${options.email} created no user row.`)
+
+  return {
+    session,
+    user,
+    member: asMember(user),
+    headers: session.headers,
+    apiHeaders: session.apiHeaders,
+  }
+}
+
+/** Saves a settings document for the organization, dropping the cached copy with it. */
+export async function applySettings(
+  app: GoLinksApp,
+  organizationId: string,
+  overrides: Partial<OrganizationSettings> = {},
+): Promise<OrganizationSettings> {
+  return await app.organizationSettings.saveSettings(organizationId, testSettings(overrides))
+}
+
+/** The error envelope of spec 05 §4, as a response carries it. */
+export interface ErrorEnvelopeBody {
+  error: { code: string; message: string; details?: Record<string, unknown>; existingLink?: Link }
+}
+
+/** The error code a response reported, for a test that only cares which rule refused it. */
+export function errorCodeOf(response: { json: <T>() => T }): string {
+  return response.json<ErrorEnvelopeBody>().error.code
 }

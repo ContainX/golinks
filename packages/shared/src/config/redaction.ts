@@ -77,6 +77,7 @@ export function describeConfig(config: DeploymentConfig): Record<string, unknown
       domains: config.authTest.domains,
     },
     metrics: config.metrics,
+    jobs: { enabled: config.jobs.enabled },
     webDistPath: config.webDistPath ?? null,
   }
 }

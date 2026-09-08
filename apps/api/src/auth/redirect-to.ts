@@ -27,7 +27,34 @@ export function sanitizeRedirectTo(value: unknown): string {
   return path
 }
 
-/** The sign-in page, carrying the reason a member was sent back to it (spec 02 §2.1). */
-export function signInPathWithError(code: string): string {
-  return `/_/auth/login?error=${encodeURIComponent(code)}`
+/** Where the service decides how a member signs in (spec 02 §2 step 1). */
+export const SIGN_IN_PATH = '/_/auth/login'
+
+/** The web app's sign-in page, which lists the providers and shows the message for an error. */
+export const SIGN_IN_PAGE_PATH = '/_/login'
+
+/**
+ * The sign-in route, carrying the reason a member was sent back to it (spec 02 §2.1) and,
+ * when there is one, the path they were trying to reach so a retry still lands there.
+ */
+export function signInPathWithError(code: string, redirectTo?: string): string {
+  const parameters = new URLSearchParams({ error: code })
+  const target = redirectTo === undefined ? DEFAULT_REDIRECT_TO : sanitizeRedirectTo(redirectTo)
+  if (target !== DEFAULT_REDIRECT_TO) parameters.set('redirectTo', target)
+  return `${SIGN_IN_PATH}?${parameters.toString()}`
+}
+
+/**
+ * The web app's sign-in page (spec 02 §2 step 1). Only the parameters that say something are
+ * carried, so the plain case is a bare `/_/login`.
+ */
+export function signInPageLocation(
+  options: { redirectTo?: string | undefined; error?: string | undefined } = {},
+): string {
+  const parameters = new URLSearchParams()
+  const target = sanitizeRedirectTo(options.redirectTo)
+  if (target !== DEFAULT_REDIRECT_TO) parameters.set('redirectTo', target)
+  if (options.error !== undefined) parameters.set('error', options.error)
+  const query = parameters.toString()
+  return query.length === 0 ? SIGN_IN_PAGE_PATH : `${SIGN_IN_PAGE_PATH}?${query}`
 }

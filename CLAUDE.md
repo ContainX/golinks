@@ -2,19 +2,53 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Current state
+## What this is
 
-GoLinks is a TypeScript short-link service: members type `go/<keyword>` and are redirected to a destination URL scoped to their organization. The project is in the specification stage and has no application code yet.
+GoLinks is a TypeScript short-link service: members type `go/<keyword>` and are redirected to a destination URL scoped to their organization. The specs under `docs/specs/` (start with `00-overview.md`) are the source of truth for behavior; `docs/decisions/` holds the ADRs (0001 fixes the stack).
 
-Read `docs/specs/00-overview.md` first. The numbered specs under `docs/specs/` are the source of truth for behavior. `docs/decisions/` holds architecture decision records. ADR 0001 fixes the stack: a pnpm monorepo with `apps/api` (Fastify, Drizzle, openid-client), `apps/web` (Vite, React, Material UI), and `packages/shared` (zod schemas shared by both).
+## Commands
+
+```bash
+pnpm install                                  # pnpm 12, Node 24+ (.nvmrc says 26)
+pnpm dev                                      # API on :3000 (tsx watch) and web on :5173 (Vite, proxies /_/api, /_/auth)
+pnpm typecheck && pnpm lint && pnpm test      # tsc per package, Biome, Vitest unit tests
+pnpm build                                    # apps/api/dist (esbuild bundle: index.js + cli.js), apps/web/dist
+pnpm test:api                                 # API integration tests on an embedded Postgres (no Docker needed)
+pnpm test:e2e                                 # Playwright against E2E_BASE_URL (default http://localhost:3000)
+pnpm --filter @golinks/api migrate            # apply migrations from DATABASE_URL
+pnpm --filter @golinks/api dev:db             # embedded Postgres for local dev when Docker is unavailable
+pnpm --filter @golinks/api exec vitest run src/resolver            # one unit suite (path filter)
+pnpm --filter @golinks/api exec vitest run --config vitest.integration.config.ts test/integration/links-   # one integration area
+pnpm --filter @golinks/web test -- -t "theme"                       # one test by name
+pnpm exec biome check --write <paths>         # format/lint only what you touched
+```
+
+`docker compose up -d` gives Postgres 16 (pg_trgm, citext) and Redis 7; `--profile full` also builds and runs the service image. `.env.example` documents every variable; local defaults enable test sign-in (`AUTH_TEST_MODE`) so no identity provider is needed.
+
+## Layout
+
+- `packages/shared` (`@golinks/shared`): zod v4 schemas for every API resource and request (`src/api`), the organization settings document (`src/settings`), the deployment config (`src/config`), and pure, browser-safe rules: keywords (`src/keywords`, `evaluateKeyword`, `matchKeywordSegments`), destinations (`src/destinations`, `buildRedirectLocation`), organization resolution from email (`src/organizations`). Consumed from source via package `exports`; no build step.
+- `apps/api` (`@golinks/api`): Fastify 5 with the zod type provider, Drizzle + postgres.js, openid-client, ioredis, pino. `src/app.ts` is the factory; `src/index.ts` the process entry.
+- `apps/web` (`@golinks/web`): Vite + React 19 + MUI 9, TanStack Query, react-router 8 data router. Typed API client in `src/api`, query hooks in `src/queries`, runtime branding in `src/app`.
+- `e2e`: Playwright smoke tests; screens are deliberately still placeholders.
+
+## Architecture you need to know
+
+- **Route ownership** (spec 04 §1): `/` and `/_/**` belong to the application (web app, `/_/api/v1`, `/_/auth`, `/_/health`, `/_/metrics`, `/_/opensearch.xml`); every other path is a keyword handled by the resolver catch-all in `apps/api/src/routes/resolver.ts`. Never add a top-level route or client route outside `/_/`.
+- **Request pipeline in `buildApp`**: short-host bounce (any non-canonical `Host` is redirected to `BASE_URL`) → security headers → sessions → rate limits → Origin CSRF check → error handler → `request.member` resolver → metrics → static/SPA → `plugins` option → health, OpenSearch, API composition (`routes/api.ts`), resolver. Hooks added before `await app.after()` run before plugin hooks.
+- **Seams to use, not rebuild**: `app.db` (Drizzle; tests pass `database` to `buildTestApp`), `app.organizationSettings` (cached settings service), `request.member` / `app.setMemberResolver` (identity plugin installs the real one), `app.rateLimits.{api,linkCreate,resolver}`, `app.metrics` (`recordResolverOutcome`, `recordJobRun`), `app.addReadinessCheck`, `app.resolverLookup` / `app.visitRecorder`.
+- **Errors**: throw `ApiError(code, message, { existingLink })` from `apps/api/src/errors.ts`; codes and statuses come from the shared catalog (`API_ERROR_STATUS`), so add new codes there and in spec 05 §4.
+- **Links domain** (`apps/api/src/links`): `createLinkWithChecks` / `renameLinkWithChecks` / `deleteLinkWithChecks` run the full validation order, the advisory lock, conflict detection, and audit events; route handlers hold no rules. `linkPermissionsFor` is the spec 03 §5 matrix.
+- **Identity** (`apps/api/src/auth`): `completeSignIn` is the single entry for every sign-in method (OIDC, test token); guards `requireMember` / `requireAdmin`.
+- **Tests**: unit tests sit next to code (`*.test.ts`); integration tests live in `apps/api/test/integration` on the embedded Postgres harness (`useTestDatabase`, `resetDatabase`), with `sign-in.ts` (`buildIdentityApp`, `signIn`) for authenticated calls. Two organizations, `widgets.test` and `gizmos.test`, prove isolation.
 
 ## Conventions
 
 - Documentation describes this product on its own terms. Do not compare it to, or reference, other go-link products.
-- Naming follows the specs' vocabulary: keyword, namespace, resolution, transfer, short host, canonical host. Invent module and function names from that vocabulary rather than borrowing from elsewhere.
+- Naming follows the specs' vocabulary: keyword, namespace, resolution, transfer, short host, canonical host.
 - UX flows are intentionally left out of `docs/specs/08-web-app-features.md`. Stop and discuss with the user before designing screens, flows, or navigation.
-- Work is tracked with beads (`bd`). The specs are already broken down into epics and tasks with dependencies; `bd ready` shows what can start. Each task's `spec-id` names the spec it implements.
-- Application routes live under `/_/`; every other path is a potential keyword. Keep it that way when adding routes.
+- Relative imports carry explicit `.ts`/`.tsx` extensions; TypeScript strict with `noUncheckedIndexedAccess`; Biome formats (single quotes, no semicolons, width 100).
+- Work is tracked with beads (`bd`); `bd ready` shows what can start, and each task's `spec-id` names the spec it implements.
 
 
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:7510c1e2 -->

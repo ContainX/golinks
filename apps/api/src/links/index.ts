@@ -7,6 +7,15 @@ export type {
   KeywordConflictResult,
 } from './conflicts.ts'
 export { detectKeywordConflict } from './conflicts.ts'
+export type { LinkPage, LinkWithOwner, ListLinksOptions } from './listing.ts'
+export {
+  containsPattern,
+  decodeLinkCursor,
+  encodeLinkCursor,
+  listLinks,
+  toLinkResources,
+  visibleToViewer,
+} from './listing.ts'
 export type { KeywordLockKey } from './locking.ts'
 export { keywordLockKey, withKeywordLock } from './locking.ts'
 export type {
@@ -63,3 +72,23 @@ export {
   renameLinkWithChecks,
   resolveNamespace,
 } from './service.ts'
+export type { SuggestLinksOptions } from './suggestions.ts'
+export { canonicalFormOf, suggestLinks } from './suggestions.ts'
+export type {
+  AcceptTransferInput,
+  CreatedTransfer,
+  CreateTransferInput,
+  PreviewTransferInput,
+  TransferContext,
+} from './transfers.ts'
+export {
+  acceptTransferWithChecks,
+  createTransferWithChecks,
+  generateTransferToken,
+  hashTransferToken,
+  previewTransfer,
+  TRANSFER_PATH_PREFIX,
+  TRANSFER_TOKEN_BYTES,
+  toLinkSummary,
+  transferUrl,
+} from './transfers.ts'

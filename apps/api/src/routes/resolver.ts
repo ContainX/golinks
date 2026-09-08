@@ -6,6 +6,7 @@
 // the visit counters, the visit row — happens after the response has gone out.
 
 import { methodNotAllowed, notFound } from '../errors.ts'
+import { resolverLogFields } from '../logging.ts'
 import { createResolverLookup } from '../resolver/lookup.ts'
 import { locationHeaderOf, resolverOutcomeOf } from '../resolver/outcomes.ts'
 import { parseResolverRequest, splitRequestPath } from '../resolver/parse.ts'
@@ -85,6 +86,8 @@ export function registerResolverRoutes(app: GoLinksApp): void {
     config: { rateLimit: app.rateLimits.resolver },
     // Spec 04 §6: the writes happen once the member already has their redirect.
     onResponse: async (request, reply) => {
+      // The bounce answered before this route ran and reported its own outcome.
+      if (request.bounced) return
       const outcome = resolverOutcomeOf(
         reply.statusCode,
         locationHeaderOf(reply.getHeader('location')),
@@ -118,7 +121,11 @@ export function registerResolverRoutes(app: GoLinksApp): void {
 
       if (resolution.outcome === 'miss') {
         request.log.info(
-          { namespace: parsed.namespace, keyword: parsed.canonicalKeyword, outcome: 'miss' },
+          resolverLogFields({
+            namespace: parsed.namespace,
+            keyword: parsed.canonicalKeyword,
+            outcome: 'miss',
+          }),
           'keyword did not resolve',
         )
         return sendMissRedirect(reply, parsed)
@@ -127,13 +134,19 @@ export function registerResolverRoutes(app: GoLinksApp): void {
       const { link } = resolution
       const built = buildHitLocation(resolution)
       if (!built.ok) {
+        // The destination is what is broken, so it is tempting to log it whole; the host is
+        // still the most a log line may carry (spec 09 §5). The failure's own message quotes
+        // the destination in full, so the line takes its code instead. The owner has the rest.
         request.log.error(
           {
             linkId: link.id,
-            namespace: link.namespace,
-            keyword: link.keyword,
-            destination: link.destination,
-            reason: built.message,
+            ...resolverLogFields({
+              namespace: link.namespace,
+              keyword: link.keyword,
+              outcome: 'unserializable',
+              destination: link.destination,
+            }),
+            reason: built.code,
           },
           'a stored destination could not be serialized as a URL',
         )
@@ -154,6 +167,15 @@ export function registerResolverRoutes(app: GoLinksApp): void {
         }
       }
 
+      request.log.info(
+        resolverLogFields({
+          namespace: link.namespace,
+          keyword: link.keyword,
+          outcome: 'hit',
+          destination: built.location,
+        }),
+        'keyword resolved',
+      )
       return sendDestinationRedirect(reply, built.location)
     },
   })

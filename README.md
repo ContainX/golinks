@@ -40,6 +40,8 @@ pnpm dev                      # API on :3000, web app on :5173 with a proxy to t
 
 Open http://localhost:5173. Health is at http://localhost:3000/_/health/ready.
 
+Without Docker, `pnpm --filter @golinks/api dev:db` starts an embedded Postgres (the same binaries the integration tests use) with its data under `apps/api/.postgres-embedded`, applies migrations, and prints the `DATABASE_URL` to put in `.env`. Leave `REDIS_URL` unset; sessions then live in Postgres.
+
 Local sign-in uses test mode (`AUTH_TEST_MODE=true` in `.env`), which accepts a short-lived token for any email in `AUTH_TEST_DOMAINS` and never contacts an identity provider. To sign in through a real Okta application instead, set `AUTH_TEST_MODE=false` and configure the `OIDC_*` variables described below.
 
 ## Commands
@@ -75,7 +77,7 @@ Everything is configured with environment variables; `.env.example` lists them a
 ### Okta setup
 
 1. In Okta, create an OIDC Web Application integration with the Authorization Code grant.
-2. Sign-in redirect URI: `<BASE_URL>/_/auth/callback/okta`. Sign-out redirect URI: `<BASE_URL>/`.
+2. Sign-in redirect URI: `<BASE_URL>/_/auth/callback/<OIDC_ID>`, where `OIDC_ID` is the provider id from your configuration (default `oidc`). Sign-out redirect URI: `<BASE_URL>/`.
 3. Set `OIDC_ISSUER` to the org authorization server (`https://acme.okta.com`) or a custom one (`https://acme.okta.com/oauth2/default`), plus the client id and secret.
 4. To make members of an Okta group admins, add the `groups` scope (`OIDC_SCOPES=openid email profile groups`), configure a groups claim on the application or authorization server, and set `OIDC_ADMIN_GROUPS=GoLinks Admins`.
 

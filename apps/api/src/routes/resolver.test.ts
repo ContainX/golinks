@@ -116,7 +116,7 @@ describe('keyword route ownership', () => {
 
     const response = await app.inject({
       method: 'DELETE',
-      url: '/_/api/v1/links/42',
+      url: '/_/api/v1/nothing-here',
       headers: { origin: CANONICAL_ORIGIN },
     })
 

@@ -2,7 +2,8 @@
 //
 // One registration installs everything a signed-in request needs: `request.member`, the
 // per-session rate-limit subject of spec 05 §5, the disabled-account enforcement of spec 01
-// §2.4, the test sign-in of spec 02 §8, and the profile endpoints of spec 05 §2.2.
+// §2.4, the OIDC sign-in and sign-out of spec 02 §§2 and 4, the test sign-in of spec 02 §8,
+// and the profile endpoints of spec 05 §2.2.
 //
 // It is passed to `buildApp` through `plugins`, so it runs after the security baseline and
 // before the built-in routes.
@@ -16,7 +17,11 @@ import {
   sessionRevocationOf,
   signedInSessionId,
 } from './member-resolver.ts'
+import { createProviderRegistry, type ProviderRegistry } from './oidc/registry.ts'
+import { registerOidcRoutes } from './oidc/routes.ts'
 import { signInPathWithError } from './redirect-to.ts'
+import { registerSignInOptionsRoute } from './sign-in-options.ts'
+import { registerSignOutRoutes } from './sign-out.ts'
 import { registerTestLoginRoutes } from './test-login.ts'
 
 export interface IdentityOptions {
@@ -29,6 +34,11 @@ export interface IdentityOptions {
   now?: () => number
   /** Overrides the cache outright, for a test that wants to inspect or clear it. */
   memberCache?: MemberCache
+  /**
+   * Overrides the identity providers the sign-in routes offer. Built from the deployment's
+   * own configuration otherwise; a test uses this to stand in for discovery.
+   */
+  providerRegistry?: ProviderRegistry
 }
 
 /**
@@ -95,6 +105,16 @@ export function createIdentityPlugin(
         .header('cache-control', 'no-store')
         .redirect(signInPathWithError('account_disabled'), 302)
     })
+
+    // Spec 02 §§2 and 4. The routes exist even where no provider is configured, which is the
+    // shape a test-mode deployment has: every provider id is then simply unknown.
+    const providers =
+      options.providerRegistry ?? createProviderRegistry(config, { logger: app.log })
+    registerOidcRoutes(app, providers, {
+      ...(options.now === undefined ? {} : { now: options.now }),
+    })
+    registerSignOutRoutes(app, providers)
+    registerSignInOptionsRoute(app, providers)
 
     if (config.authTest.enabled) {
       registerTestLoginRoutes(app, { ...(options.now === undefined ? {} : { now: options.now }) })

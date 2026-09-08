@@ -11,7 +11,8 @@
     "migrate": "tsx src/cli.ts migrate",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
-    "test:integration": "vitest run --passWithNoTests --config vitest.integration.config.ts"
+    "test:integration": "vitest run --passWithNoTests --config vitest.integration.config.ts",
+    "dev:db": "tsx scripts/dev-database.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.2",

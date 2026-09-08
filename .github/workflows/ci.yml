@@ -65,6 +65,45 @@ jobs:
           path: apps/web/dist
           retention-days: 7
 
+  e2e:
+    name: End-to-end
+    needs: checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install browsers
+        run: pnpm --filter @golinks/e2e exec playwright install --with-deps chromium
+      - name: Start the instance under test
+        run: docker compose --profile full up -d --build
+      - name: Wait for readiness
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:3000/_/health/ready >/dev/null; then exit 0; fi
+            sleep 2
+          done
+          docker compose --profile full logs app
+          exit 1
+      - run: pnpm test:e2e
+        env:
+          E2E_BASE_URL: http://localhost:3000
+          CI: 'true'
+      - name: Upload report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: e2e/playwright-report
+          retention-days: 7
+      - name: Stop the instance
+        if: always()
+        run: docker compose --profile full down -v
+
   image:
     name: Container image
     needs: checks

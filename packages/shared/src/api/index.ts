@@ -2,6 +2,8 @@
 
 export type { AdminSettingsPutBody, AdminSettingsResponse } from './admin.ts'
 export { AdminSettingsPutBodySchema, AdminSettingsResponseSchema } from './admin.ts'
+export type { SignInOptions, SignInProvider } from './auth.ts'
+export { SignInOptionsSchema, SignInProviderSchema } from './auth.ts'
 export type { ApiId, Email, ListEnvelope, SortOrder, Timestamp } from './common.ts'
 export {
   API_BASE_PATH,
