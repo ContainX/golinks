@@ -1,0 +1,9 @@
+packages:
+  - apps/*
+  - packages/*
+allowBuilds:
+  esbuild: true
+  "@biomejs/biome": true
+  embedded-postgres: true
+minimumReleaseAgeExclude:
+  - "@types/node@26.5.0"

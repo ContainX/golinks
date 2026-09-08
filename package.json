@@ -1,0 +1,25 @@
+{
+  "name": "golinks",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Short links for organizations: go/keyword redirects to a destination URL.",
+  "engines": {
+    "node": ">=24",
+    "pnpm": ">=10"
+  },
+  "packageManager": "pnpm@12.3.4",
+  "scripts": {
+    "build": "pnpm -r build",
+    "dev": "pnpm -r --parallel dev",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "test": "pnpm -r test",
+    "test:api": "pnpm --filter @golinks/api test:integration"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.12",
+    "typescript": "^5.9.3"
+  }
+}

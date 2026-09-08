@@ -6,14 +6,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 GoLinks is a TypeScript short-link service: members type `go/<keyword>` and are redirected to a destination URL scoped to their organization. The project is in the specification stage and has no application code yet.
 
-Read `docs/specs/00-overview.md` first. The numbered specs under `docs/specs/` are the source of truth for behavior. `docs/decisions/` holds architecture decision records; ADR 0001 (application framework) is still pending and determines the repository layout, so do not scaffold code until it is decided.
+Read `docs/specs/00-overview.md` first. The numbered specs under `docs/specs/` are the source of truth for behavior. `docs/decisions/` holds architecture decision records. ADR 0001 fixes the stack: a pnpm monorepo with `apps/api` (Fastify, Drizzle, openid-client), `apps/web` (Vite, React, Material UI), and `packages/shared` (zod schemas shared by both).
 
 ## Conventions
 
 - Documentation describes this product on its own terms. Do not compare it to, or reference, other go-link products.
 - Naming follows the specs' vocabulary: keyword, namespace, resolution, transfer, short host, canonical host. Invent module and function names from that vocabulary rather than borrowing from elsewhere.
 - UX flows are intentionally left out of `docs/specs/08-web-app-features.md`. Stop and discuss with the user before designing screens, flows, or navigation.
-- Work is tracked with beads (`bd`). Once the framework is decided, the specs are broken down into beads epics and tasks before implementation starts.
+- Work is tracked with beads (`bd`). The specs are already broken down into epics and tasks with dependencies; `bd ready` shows what can start. Each task's `spec-id` names the spec it implements.
 - Application routes live under `/_/`; every other path is a potential keyword. Keep it that way when adding routes.
 
 
