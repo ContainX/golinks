@@ -81,9 +81,14 @@ function memberFixture(preferences: UserPreferences = {}): Me {
  * all, which Material UI reads as "no device preference" and answers by
  * setting no scheme; a browser always has one.
  */
-function stubDevicePrefersDark(prefersDark: boolean): void {
+function stubDevicePrefersDark(prefersDark: boolean, narrow = false): void {
   vi.stubGlobal('matchMedia', (query: string) => ({
-    matches: query.includes('dark') ? prefersDark : !prefersDark,
+    // Breakpoint queries ask about width; everything else here is a color-scheme query.
+    matches: query.includes('max-width')
+      ? narrow
+      : query.includes('dark')
+        ? prefersDark
+        : !prefersDark,
     media: query,
     onchange: null,
     addEventListener: () => {},
@@ -250,6 +255,21 @@ describe('the short-host notice', () => {
     expect(screen.getByText(/hosts-file entry/)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: '/_/opensearch.xml' })).toBeInTheDocument()
     expect(screen.getByText('links.example.com')).toBeInTheDocument()
+  })
+
+  it('starts folded to its title on a narrow screen and opens on request', async () => {
+    stubDevicePrefersDark(false, true)
+    stubApi(meFixture())
+    renderShell()
+
+    expect(await screen.findByText(/Make go\/ work in your browser/)).toBeInTheDocument()
+    expect(screen.queryByText(/hosts-file entry/)).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show how' }))
+    expect(await screen.findByText(/hosts-file entry/)).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Hide' }))
+    await waitFor(() => expect(screen.queryByText(/hosts-file entry/)).toBeNull())
   })
 
   it('records a dismissal against the member, keeping the other preferences', async () => {

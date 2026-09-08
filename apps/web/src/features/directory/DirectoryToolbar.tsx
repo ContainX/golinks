@@ -73,7 +73,10 @@ export function DirectoryToolbar({
   const chips: { id: DirectoryFilterId; label: string; icon?: ReactElement }[] = [
     { id: 'all', label: 'All' },
     { id: 'mine', label: 'Mine' },
-    ...namespaces.map((namespace) => ({ id: namespaceFilter(namespace), label: namespace })),
+    // One chip per namespace is only a choice when there is more than the default one.
+    ...(namespaces.length > 1
+      ? namespaces.map((namespace) => ({ id: namespaceFilter(namespace), label: namespace }))
+      : []),
     { id: 'programmatic', label: 'Programmatic' },
     ...(showUnlisted
       ? [

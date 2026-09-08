@@ -165,6 +165,18 @@ describe('filters, search, and sort', () => {
     await waitFor(() => expect(api.lastRequest('GET /links')?.query.get('namespace')).toBe('eng'))
   })
 
+  it('offers no namespace chip when the organization has only its default namespace', async () => {
+    directoryApi({
+      'GET /me': { ...me, organization: { ...me.organization, namespaces: [] } },
+    })
+    renderRoutes(routes)
+
+    await screen.findByText('handbook')
+    expect(screen.queryByRole('button', { name: 'go' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'eng' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Mine' })).toBeInTheDocument()
+  })
+
   it('filters to programmatic links through the API', async () => {
     const api = directoryApi()
     renderRoutes(routes)
