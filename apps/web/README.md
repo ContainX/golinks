@@ -4,10 +4,10 @@ The GoLinks web application: a React single-page app built with Vite and
 Material UI, talking to the API over the JSON HTTP interface in
 `docs/specs/05-http-api.md`.
 
-Screens are placeholders. UX design is a separate step (`docs/specs/08-web-app-features.md` §9),
-and nothing in `src/pages/` should be read as a proposal for layout, navigation,
-or visual design. What is real is the scaffolding: the theme, the API cache, the
-transport, and the route table.
+The screens follow the agreed flows (ADR 0002): a directory with a create bar
+and a dense table, a slide-over link drawer at `/_/links/:id`, a dedicated
+unknown-keyword screen, a sign-in page, and an admin area. Screens are organized
+by feature under `src/features/`; `src/pages/` holds the thin route components.
 
 ## Route ownership
 
@@ -134,12 +134,19 @@ src/
     AppProviders.tsx      The API cache, then the branding that depends on it
     BrandingProvider.tsx  Theme, title, favicon, and branding context from /me
     documentBranding.ts   The title and favicon, which live outside React
-    AppShell.tsx          Root layout; chrome is deferred to the UX design step
+    AppShell.tsx          Root layout: the shell frame around the route outlet
     routes.tsx            The route table above
     router.ts             Browser router over the route table
     theme.ts              createAppTheme(branding) from spec 06 §2 branding
     queryClient.ts        Cache defaults
-  pages/                  Placeholder screens, one heading and one sentence each
+  features/
+    shell/                App bar, navigation, user menu, banner, short-host notice, color scheme
+    sign-in/              The sign-in card and its messages
+    directory/            The directory: toolbar, table, mobile list, empty states
+    links/                Create form, unknown-keyword screen, link drawer, delete and transfer dialogs
+    admin/                Admin layout, users with reassignment, settings form, events feed
+  pages/                  Route components: DirectoryPage (branches on ?keyword= and :id), SignInPage,
+                          TransferPage, NotFoundPage, admin/*
   test/                   Vitest setup, resource fixtures, fetch and cache harnesses
 ```
 

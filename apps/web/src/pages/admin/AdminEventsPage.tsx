@@ -1,11 +1,11 @@
-import { PlaceholderScreen } from '../PlaceholderScreen.tsx'
+import { AdminLayout } from '../../features/admin/AdminLayout.tsx'
+import { AdminEventsView } from '../../features/admin/events/AdminEventsView.tsx'
 
-/** Placeholder for the audit trail (spec 08 §8, spec 07). */
+/** `/_/admin/events`: the audit trail (spec 07 §1). */
 export function AdminEventsPage() {
   return (
-    <PlaceholderScreen
-      title="Events"
-      description="Browsing and filtering the organization's audit trail will live here."
-    />
+    <AdminLayout>
+      <AdminEventsView />
+    </AdminLayout>
   )
 }

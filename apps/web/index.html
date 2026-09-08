@@ -10,6 +10,20 @@
     <title>GoLinks</title>
     <link rel="icon" href="/favicon.ico" />
     <!--
+      The page ground, before any script has run. The application sets
+      `data-light` or `data-dark` on <html> as soon as its bundle evaluates and
+      Material UI keeps it there afterwards; until then the device preference
+      decides, so a member who works in the dark never sees a white flash. The
+      inline style is allowed by the service's Content-Security-Policy; an
+      inline script would not be (spec 02 section 7).
+    -->
+    <style>
+      :root { color-scheme: light dark; background-color: #fff; }
+      :root[data-light] { color-scheme: light; background-color: #fff; }
+      :root[data-dark] { color-scheme: dark; background-color: #121212; }
+      @media (prefers-color-scheme: dark) { :root { background-color: #121212; } }
+    </style>
+    <!--
       Lets the browser register the keyword search template the API serves, so a
       member can type the short host in the address bar (spec 11).
     -->

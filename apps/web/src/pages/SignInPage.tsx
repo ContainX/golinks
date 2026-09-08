@@ -1,35 +1,13 @@
-import Typography from '@mui/material/Typography'
-import { useSearchParams } from 'react-router'
-import { PlaceholderScreen } from './PlaceholderScreen.tsx'
+import { SignInCard } from '../features/sign-in/SignInCard.tsx'
 
 /**
- * Placeholder for the sign-in page (spec 08 §2).
+ * `/_/login` (spec 08 §2, ADR 0002 §6).
  *
- * The API hands the browser here when it needs a provider chosen, when sign-in
- * failed with a code from spec 02 §2.1 (`?error=`), and after sign-out
- * (`?signedOut=1`). Until the page is designed, the raw code is shown as-is
- * rather than the member-facing message it maps to.
+ * The API hands the browser here when a provider has to be chosen, when a
+ * sign-in failed with a code from spec 02 §2.1 (`?error=`), and after
+ * sign-out (`?signedOut=1`). It is the one screen in the app that is reached
+ * without a session, so it shows nothing that needs one.
  */
 export function SignInPage() {
-  const [searchParams] = useSearchParams()
-  const error = searchParams.get('error')
-  const signedOut = searchParams.get('signedOut')
-
-  return (
-    <PlaceholderScreen
-      title="Sign in"
-      description="The provider chooser and sign-in messages will live here."
-    >
-      {error === null ? null : (
-        <Typography>
-          Sign-in error code: <code>{error}</code>
-        </Typography>
-      )}
-      {signedOut === null ? null : (
-        <Typography>
-          Signed out: <code>{signedOut}</code>
-        </Typography>
-      )}
-    </PlaceholderScreen>
-  )
+  return <SignInCard />
 }

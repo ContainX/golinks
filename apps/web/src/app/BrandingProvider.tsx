@@ -12,6 +12,10 @@
  * failure here is not shown: the commonest one by far is the 401 that has
  * already sent the browser to sign-in (spec 02 §2), and a member on their way
  * out should not be handed an error about a logo.
+ *
+ * The theme carries a light and a dark scheme (ADR 0002 §10); which one is on
+ * the page is Material UI's business from here, driven by the device or by the
+ * member's stored preference, which the shell applies.
  */
 
 import type { OrganizationBranding } from '@golinks/shared/settings'
@@ -62,7 +66,16 @@ export function BrandingProvider({ children }: BrandingProviderProps) {
 
   return (
     <BrandingContext.Provider value={branding}>
-      <ThemeProvider theme={theme}>
+      <ThemeProvider
+        theme={theme}
+        // Follow the device unless the member has fixed a scheme (ADR 0002 §10).
+        defaultMode="system"
+        // Nothing here is server-rendered, so the stored scheme can be read on
+        // the very first render rather than in an effect after it: the page is
+        // painted once, in the right scheme, instead of twice.
+        noSsr
+        disableTransitionOnChange
+      >
         <CssBaseline />
         {children}
       </ThemeProvider>

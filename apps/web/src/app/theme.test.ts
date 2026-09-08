@@ -1,8 +1,8 @@
 import type { OrganizationBranding } from '@golinks/shared/settings'
 import { DEFAULT_BRANDING_TITLE } from '@golinks/shared/settings'
-import { createTheme } from '@mui/material/styles'
+import { createTheme, getContrastRatio } from '@mui/material/styles'
 import { describe, expect, it } from 'vitest'
-import { createAppTheme } from './theme.ts'
+import { colorForDarkScheme, createAppTheme } from './theme.ts'
 
 /** Branding as the shared schema fills it in for an organization that set none. */
 const noBranding: OrganizationBranding = {
@@ -62,5 +62,59 @@ describe('createAppTheme', () => {
 
     expect(theme.palette.primary.main).toBe(defaults.palette.primary.main)
     expect(theme.palette.secondary.main).toBe(defaults.palette.secondary.main)
+  })
+})
+
+describe('colorForDarkScheme', () => {
+  const DARK_SURFACE = '#121212'
+
+  it('lightens a brand color until it can be read on a dark surface', () => {
+    const navy = '#1f4b99'
+    expect(getContrastRatio(navy, DARK_SURFACE)).toBeLessThan(4.5)
+
+    expect(getContrastRatio(colorForDarkScheme(navy), DARK_SURFACE)).toBeGreaterThanOrEqual(4.5)
+  })
+
+  it('leaves a color that already reads on a dark surface alone', () => {
+    const amber = '#d97706'
+    expect(getContrastRatio(amber, DARK_SURFACE)).toBeGreaterThanOrEqual(4.5)
+
+    expect(colorForDarkScheme(amber)).toBe(amber)
+  })
+})
+
+describe('createAppTheme color schemes', () => {
+  it('builds a light and a dark scheme, selected by a data attribute (ADR 0002 §10)', () => {
+    const theme = createAppTheme(noBranding)
+
+    expect(theme.colorSchemes.light).toBeDefined()
+    expect(theme.colorSchemes.dark).toBeDefined()
+    expect(theme.colorSchemeSelector).toBe('data')
+    // Both palettes are on the page at once, as custom properties, so that
+    // switching schemes is an attribute change rather than a re-render.
+    expect(theme.vars).toBeDefined()
+  })
+
+  it('derives both schemes from the same branding colors', () => {
+    const theme = createAppTheme({
+      ...noBranding,
+      primaryColor: '#1f4b99',
+      secondaryColor: '#d97706',
+    })
+
+    expect(theme.colorSchemes.light?.palette.primary.main).toBe('#1f4b99')
+    expect(theme.colorSchemes.light?.palette.secondary.main).toBe('#d97706')
+    expect(theme.colorSchemes.dark?.palette.primary.main).toBe(colorForDarkScheme('#1f4b99'))
+    expect(theme.colorSchemes.dark?.palette.secondary.main).toBe('#d97706')
+  })
+
+  it('gives the dark scheme its own defaults when branding sets no colors', () => {
+    const defaults = createTheme({ colorSchemes: { light: true, dark: true } })
+    const theme = createAppTheme(noBranding)
+
+    expect(theme.colorSchemes.dark?.palette.primary.main).toBe(
+      defaults.colorSchemes.dark?.palette.primary.main,
+    )
+    expect(theme.colorSchemes.dark?.palette.mode).toBe('dark')
   })
 })

@@ -1,11 +1,11 @@
-import { PlaceholderScreen } from '../PlaceholderScreen.tsx'
+import { AdminLayout } from '../../features/admin/AdminLayout.tsx'
+import { AdminUsersView } from '../../features/admin/users/AdminUsersView.tsx'
 
-/** Placeholder for user administration (spec 08 §8). */
+/** `/_/admin/users`: the organization's members (spec 08 §8). */
 export function AdminUsersPage() {
   return (
-    <PlaceholderScreen
-      title="Users"
-      description="Listing members, changing roles, and enabling or disabling accounts will live here."
-    />
+    <AdminLayout>
+      <AdminUsersView />
+    </AdminLayout>
   )
 }

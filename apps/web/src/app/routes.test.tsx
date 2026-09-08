@@ -35,32 +35,38 @@ function leafPathAt(path: string): string | undefined {
 }
 
 describe('the route table', () => {
-  it('renders the sign-in placeholder at /_/login', async () => {
+  it('renders the sign-in page at /_/login', async () => {
     renderAt('/_/login')
 
-    expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /^Sign in to/ })).toBeInTheDocument()
   })
 
-  it('shows the raw error code the auth endpoint passed on', async () => {
+  it('shows the message for the code the auth endpoint passed on', async () => {
     renderAt('/_/login?error=account_disabled')
 
-    await screen.findByRole('heading', { name: 'Sign in' })
-    expect(screen.getByText('account_disabled')).toBeInTheDocument()
+    await screen.findByRole('heading', { name: /^Sign in to/ })
+    expect(
+      screen.getByText('Your account has been disabled by an administrator.'),
+    ).toBeInTheDocument()
   })
 
   it('shows that the member signed out', async () => {
     renderAt('/_/login?signedOut=1')
 
-    await screen.findByRole('heading', { name: 'Sign in' })
-    expect(screen.getByText(/Signed out/)).toBeInTheDocument()
+    await screen.findByRole('heading', { name: /^Sign in to/ })
+    expect(screen.getByText(/You are signed out/)).toBeInTheDocument()
   })
 
-  it('renders the directory at / and at the address a resolver miss lands on', async () => {
+  it('renders the directory at /', async () => {
     renderAt('/')
     expect(await screen.findByRole('heading', { name: 'Directory' })).toBeInTheDocument()
+  })
 
+  it('renders the unknown-keyword screen where a resolver miss lands', async () => {
     renderAt('/_/?keyword=nothing-here')
-    expect(await screen.findAllByRole('heading', { name: 'Directory' })).not.toHaveLength(0)
+    expect(
+      await screen.findByRole('heading', { name: /go\/nothing-here doesn.t exist yet/ }),
+    ).toBeInTheDocument()
   })
 
   it('matches the application routes under /_/', () => {
