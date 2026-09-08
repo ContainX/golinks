@@ -23,3 +23,6 @@ test-results/
 
 # Design documents stay local to this working copy
 docs/
+
+# Issue tracking data stays local
+.beads/
