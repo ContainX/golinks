@@ -44,7 +44,7 @@ pnpm --filter @golinks/api sign-in-link owner@widgets.test       # an admin, per
 pnpm --filter @golinks/api sign-in-link sam@widgets.test /handbook   # a member, landing on a keyword
 ```
 
-Without Docker, `pnpm --filter @golinks/api dev:db` starts an embedded Postgres (the same binaries the integration tests use) with its data under `apps/api/.postgres-embedded`, applies migrations, and prints the `DATABASE_URL` to put in `.env`. Leave `REDIS_URL` unset; sessions then live in Postgres.
+Without Docker, `pnpm local` does all of the above in one terminal: it starts an embedded Postgres, the API, and the web app, and prints sign-in links (press Enter for fresh ones). Underneath, `pnpm --filter @golinks/api dev:db` starts the embedded Postgres (the same binaries the integration tests use) with its data under `apps/api/.postgres-embedded`, applies migrations, and prints the `DATABASE_URL` to put in `.env`. Leave `REDIS_URL` unset; sessions then live in Postgres.
 
 Local sign-in uses test mode (`AUTH_TEST_MODE=true` in `.env`), which accepts a short-lived token for any email in `AUTH_TEST_DOMAINS` and never contacts an identity provider. To sign in through a real Okta application instead, set `AUTH_TEST_MODE=false` and configure the `OIDC_*` variables described below.
 
