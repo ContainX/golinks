@@ -10,15 +10,12 @@ Highlights:
 - Sign-in through Okta or any OpenID Connect provider; admins can come from IdP groups.
 - Postgres for storage, optional Redis for sessions and caches, one container image.
 
-The full behavior is specified under [`docs/specs`](docs/specs/00-overview.md). Architecture decisions live in [`docs/decisions`](docs/decisions).
-
 ## Repository layout
 
 ```
 apps/api          Fastify service: redirect resolver, HTTP API, web app host
 apps/web          React + Material UI single-page app
 packages/shared   zod schemas and pure domain rules used by both
-docs              Specifications and decision records
 docker            Container init scripts
 ```
 
@@ -62,7 +59,7 @@ Integration tests start an embedded Postgres automatically. Set `GOLINKS_TEST_DA
 
 ## Configuration
 
-Everything is configured with environment variables; `.env.example` lists them all with comments, and [`docs/specs/06-organization-settings-and-configuration.md`](docs/specs/06-organization-settings-and-configuration.md) is the reference. The essentials:
+Everything is configured with environment variables; `.env.example` lists them all with comments. The essentials:
 
 | Variable | Purpose |
 |---|---|
@@ -95,4 +92,4 @@ The reverse proxy must route both the short host and the canonical host to the s
 
 Build the image with `docker build -t golinks .` or pull a published image from the GitHub Container Registry. The container runs the API, serves the web app, and applies migrations on start when `MIGRATE_ON_START=true` (or run `golinks migrate` as a separate deploy step). Postgres is the only stateful dependency; Redis holds sessions and caches and can be flushed at any time.
 
-See [`docs/specs/09-infrastructure-and-operations.md`](docs/specs/09-infrastructure-and-operations.md) for logging, health, metrics, scaling, and CI details.
+Logs are structured JSON on stdout with a request id on every line and on every response. Readiness is `/_/health/ready`, liveness `/_/health/live`, and Prometheus metrics are served at `/_/metrics` when `METRICS_ENABLED=true`. Any number of replicas can run once `REDIS_URL` is set; background jobs coordinate through Postgres advisory locks.
