@@ -118,6 +118,12 @@ export const LinkListQuerySchema = z.strictObject({
   /** Substring match against the display keyword, the destination, and the owner's email. */
   q: z.string().trim().max(200).optional(),
   namespace: NamespaceInputSchema.optional(),
+  /**
+   * Exact match on the stored destination, which answers "is there a link for this page" in
+   * one request (spec 12 §3). A destination that differs by a query or a fragment is a
+   * different destination.
+   */
+  destination: DestinationInputSchema.optional(),
   /** `me` or a user id. */
   owner: ApiIdSchema.optional(),
   programmatic: BooleanQuerySchema.optional(),

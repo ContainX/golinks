@@ -70,6 +70,10 @@ export async function listLinks(
   if (query.namespace !== undefined) {
     conditions.push(eq(links.namespace, query.namespace.trim().toLowerCase()))
   }
+  // Spec 03 §10.1: `destination` matches the stored text exactly, so a page that differs by a
+  // query or a fragment is a different page. It narrows the same statement as every other
+  // filter, which is what keeps the organization scope and the unlisted rule over it.
+  if (query.destination !== undefined) conditions.push(eq(links.destination, query.destination))
   const owner = ownerFilter(member, query.owner)
   if (owner !== undefined) conditions.push(owner)
   if (query.programmatic !== undefined) {

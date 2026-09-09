@@ -15,6 +15,9 @@ const echoRoute = (instance: GoLinksApp): void => {
   })
 }
 
+const EXTENSION_ORIGIN = `chrome-extension://${'a'.repeat(32)}`
+const OTHER_EXTENSION_ORIGIN = `chrome-extension://${'b'.repeat(32)}`
+
 let app: GoLinksApp | undefined
 
 afterEach(async () => {
@@ -122,6 +125,93 @@ describe('origin check', () => {
 
     expect(response.statusCode).toBe(415)
     expect(response.json().error.code).toBe('unsupported_media_type')
+  })
+
+  it('accepts an extension origin the deployment lists (spec 12 §3)', async () => {
+    app = await buildTestApp({
+      plugins: [echoRoute],
+      environment: { EXTENSION_ORIGINS: `${EXTENSION_ORIGIN},${OTHER_EXTENSION_ORIGIN}` },
+    })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/_/api/v1/echo',
+      headers: { origin: OTHER_EXTENSION_ORIGIN },
+      payload: { keyword: 'handbook' },
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json()).toEqual({ keyword: 'handbook' })
+  })
+
+  it('still accepts the canonical origin when extension origins are listed', async () => {
+    app = await buildTestApp({
+      plugins: [echoRoute],
+      environment: { EXTENSION_ORIGINS: EXTENSION_ORIGIN },
+    })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/_/api/v1/echo',
+      headers: { origin: CANONICAL_ORIGIN },
+      payload: { keyword: 'handbook' },
+    })
+
+    expect(response.statusCode).toBe(200)
+  })
+
+  it('refuses an extension origin the deployment does not list', async () => {
+    app = await buildTestApp({
+      plugins: [echoRoute],
+      environment: { EXTENSION_ORIGINS: EXTENSION_ORIGIN },
+    })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/_/api/v1/echo',
+      headers: { origin: OTHER_EXTENSION_ORIGIN },
+      payload: { keyword: 'handbook' },
+    })
+
+    expect(response.statusCode).toBe(403)
+    expect(response.json().error.code).toBe('csrf_origin_mismatch')
+  })
+
+  it('refuses every extension origin when none is configured', async () => {
+    app = await buildTestApp({ plugins: [echoRoute] })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/_/api/v1/echo',
+      headers: { origin: EXTENSION_ORIGIN },
+      payload: { keyword: 'handbook' },
+    })
+
+    expect(response.statusCode).toBe(403)
+    expect(response.json().error.code).toBe('csrf_origin_mismatch')
+  })
+
+  it('holds the Referer fallback to the canonical origin alone', async () => {
+    app = await buildTestApp({
+      plugins: [echoRoute],
+      environment: { EXTENSION_ORIGINS: EXTENSION_ORIGIN },
+    })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/_/api/v1/echo',
+      headers: { referer: `${EXTENSION_ORIGIN}/popup.html` },
+      payload: { keyword: 'handbook' },
+    })
+
+    expect(response.statusCode).toBe(403)
+    expect(response.json().error.code).toBe('csrf_origin_mismatch')
+  })
+
+  it('refuses to start on a malformed EXTENSION_ORIGINS entry', async () => {
+    await expect(
+      buildTestApp({ environment: { EXTENSION_ORIGINS: 'https://evil.example' } }),
+    ).rejects.toThrow(/EXTENSION_ORIGINS/)
   })
 
   it('accepts application/json with a charset parameter', async () => {

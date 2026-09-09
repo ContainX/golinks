@@ -48,15 +48,33 @@ function isJsonContentType(value: string | undefined): boolean {
 }
 
 /**
- * Compares the request's Origin against the canonical origin, falling back to the Referer when
- * the browser omitted Origin. Returns the reason the request failed, or undefined when it passed.
+ * Whether an Origin header names one of the extension origins the deployment lists in
+ * `EXTENSION_ORIGINS` (spec 12 §3).
+ *
+ * Compared as text rather than through the URL helpers: `chrome-extension://` is not an http
+ * origin, and the configuration has already normalized both sides to the exact form a browser
+ * sends. An empty list — the default — accepts nothing.
+ */
+function isAllowedExtensionOrigin(header: string, extensionOrigins: readonly string[]): boolean {
+  if (extensionOrigins.length === 0) return false
+  return extensionOrigins.includes(header.trim().toLowerCase())
+}
+
+/**
+ * Compares the request's Origin against the canonical origin, or one of the deployment's
+ * extension origins, falling back to the Referer when the browser omitted Origin. The Referer
+ * fallback knows only the canonical origin: an extension always sends an Origin.
+ *
+ * Returns the reason the request failed, or undefined when it passed.
  */
 export function checkRequestOrigin(
   request: FastifyRequest,
   expectedOrigin: string,
+  extensionOrigins: readonly string[] = [],
 ): string | undefined {
   const originHeader = request.headers.origin
   if (typeof originHeader === 'string' && originHeader !== 'null') {
+    if (isAllowedExtensionOrigin(originHeader, extensionOrigins)) return undefined
     const origin = originOfUrl(originHeader)
     return origin === expectedOrigin ? undefined : 'the Origin header does not match this service'
   }
@@ -70,12 +88,13 @@ export function checkRequestOrigin(
 
 export function registerOriginCheck(app: FastifyInstance, config: DeploymentConfig): void {
   const expectedOrigin = config.baseUrl
+  const extensionOrigins = config.extensionOrigins
 
   app.addHook('onRequest', async (request) => {
     const pathname = pathnameOf(request.url)
 
     if (requiresOriginCheck(request.method, pathname)) {
-      const reason = checkRequestOrigin(request, expectedOrigin)
+      const reason = checkRequestOrigin(request, expectedOrigin, extensionOrigins)
       if (reason !== undefined) {
         throw new ApiError('csrf_origin_mismatch', `This request was refused because ${reason}.`, {
           details: { expectedOrigin },

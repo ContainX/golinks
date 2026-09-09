@@ -29,6 +29,7 @@ export function describeConfig(config: DeploymentConfig): Record<string, unknown
     baseUrl: config.baseUrl,
     shortHost: config.shortHost,
     trustProxy: config.trustProxy,
+    extensionOrigins: config.extensionOrigins,
     databaseUrl: redactConnectionString(config.databaseUrl),
     redisUrl: redactConnectionString(config.redisUrl) ?? null,
     migrateOnStart: config.migrateOnStart,

@@ -121,6 +121,35 @@ const originVariable = z.string().transform((value, ctx): HttpOrigin => {
   return origin
 })
 
+/**
+ * A Chrome extension origin: the `chrome-extension:` scheme and the 32-character id Chrome
+ * derives from the extension's key, which is always lowercase `a` through `p`.
+ */
+const EXTENSION_ORIGIN_PATTERN = /^chrome-extension:\/\/[a-p]{32}$/
+
+/**
+ * `EXTENSION_ORIGINS`: the extension origins the Origin check accepts alongside the canonical
+ * one (spec 12 §3). Entries are trimmed, lowercased, and stripped of a trailing slash so that
+ * a value copied out of a browser matches the header the browser sends.
+ */
+const extensionOriginsVariable = z.string().transform((value, ctx): string[] => {
+  const origins: string[] = []
+  for (const entry of value.split(',')) {
+    const trimmed = entry.trim()
+    if (trimmed.length === 0) continue
+    const origin = trimmed.toLowerCase().replace(/\/+$/, '')
+    if (!EXTENSION_ORIGIN_PATTERN.test(origin)) {
+      ctx.addIssue({
+        code: 'custom',
+        message: `expected "chrome-extension://<32 letter id>" origins, received "${trimmed}"`,
+      })
+      return z.NEVER
+    }
+    if (!origins.includes(origin)) origins.push(origin)
+  }
+  return origins
+})
+
 const scopesVariable = z
   .union([z.string(), z.array(z.string())])
   .transform((value) =>
@@ -202,6 +231,7 @@ const environmentVariables = z.object({
   BASE_URL: originVariable,
   SHORT_HOST: z.string().trim().min(1).default('go'),
   TRUST_PROXY: booleanVariable.default(false),
+  EXTENSION_ORIGINS: extensionOriginsVariable.default([]),
 
   DATABASE_URL: z.string().trim().min(1),
   REDIS_URL: z.string().trim().min(1).optional(),
@@ -266,6 +296,11 @@ export interface DeploymentConfig {
   isCanonicalSecure: boolean
   shortHost: string
   trustProxy: boolean
+  /**
+   * Extension origins the Origin check accepts besides the canonical one (spec 02 §6,
+   * spec 12 §3). Empty on a deployment that has no browser extension.
+   */
+  extensionOrigins: string[]
   databaseUrl: string
   redisUrl: string | undefined
   migrateOnStart: boolean
@@ -348,6 +383,7 @@ function toDeploymentConfig(variables: z.output<typeof environmentVariables>): D
     isCanonicalSecure,
     shortHost: variables.SHORT_HOST,
     trustProxy: variables.TRUST_PROXY,
+    extensionOrigins: variables.EXTENSION_ORIGINS,
     databaseUrl: variables.DATABASE_URL,
     redisUrl: variables.REDIS_URL,
     migrateOnStart: variables.MIGRATE_ON_START,

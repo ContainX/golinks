@@ -172,6 +172,7 @@ describe('LinkListQuerySchema', () => {
       LinkListQuerySchema.parse({
         q: 'notes',
         namespace: 'eng',
+        destination: 'https://docs.acme.com/notes',
         owner: 'me',
         programmatic: 'true',
         sort: 'keyword',
@@ -182,6 +183,7 @@ describe('LinkListQuerySchema', () => {
     ).toEqual({
       q: 'notes',
       namespace: 'eng',
+      destination: 'https://docs.acme.com/notes',
       owner: 'me',
       programmatic: true,
       sort: 'keyword',
@@ -189,6 +191,28 @@ describe('LinkListQuerySchema', () => {
       limit: 10,
       cursor: 'eyJ2IjoxfQ',
     })
+  })
+
+  it('trims the destination filter and leaves it absent when unasked', () => {
+    expect(LinkListQuerySchema.parse({ destination: '  https://docs.acme.com/notes ' })).toEqual({
+      destination: 'https://docs.acme.com/notes',
+      sort: 'visits',
+      order: 'desc',
+      limit: 50,
+    })
+    expect(LinkListQuerySchema.parse({}).destination).toBeUndefined()
+  })
+
+  it('keeps a destination whole, query string and fragment included', () => {
+    const destination = 'https://docs.acme.com/notes?tab=1#today'
+
+    expect(LinkListQuerySchema.parse({ destination }).destination).toBe(destination)
+  })
+
+  it('refuses a destination filter that is blank or longer than the column', () => {
+    expect(LinkListQuerySchema.safeParse({ destination: '   ' }).success).toBe(false)
+    expect(LinkListQuerySchema.safeParse({ destination: 'x'.repeat(4097) }).success).toBe(false)
+    expect(LinkListQuerySchema.safeParse({ destination: 'x'.repeat(4096) }).success).toBe(true)
   })
 
   it('leaves programmatic absent when it is omitted, meaning both kinds', () => {

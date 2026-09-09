@@ -17,7 +17,7 @@ const PORT = Number(process.env.DEV_DB_PORT ?? 5433)
 const USER = 'golinks'
 const PASSWORD = 'golinks'
 const DATABASE = 'golinks'
-const DATA_DIR = join(import.meta.dirname, '..', '.postgres-embedded')
+const DATA_DIR = process.env.DEV_DB_DIR ?? join(import.meta.dirname, '..', '.postgres-embedded')
 
 async function main(): Promise<void> {
   await mkdir(DATA_DIR, { recursive: true })

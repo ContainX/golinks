@@ -217,6 +217,89 @@ describe('filters', () => {
   })
 })
 
+describe('the destination filter (spec 03 §10.1, spec 12 §3)', () => {
+  const PAGE = 'https://wiki.widgets.test/handbook'
+
+  /** `GET /links?destination=…` with the value escaped the way the extension sends it. */
+  function forDestination(destination: string): string {
+    return `destination=${encodeURIComponent(destination)}`
+  }
+
+  it('answers with the link whose destination matches exactly', async () => {
+    await seed({ keyword: 'handbook', destination: PAGE })
+    await seed({ keyword: 'payroll', destination: 'https://payments.widgets.test/' })
+
+    expect(paths(await list(ada, forDestination(PAGE)))).toEqual(['go/handbook'])
+  })
+
+  it('answers with every link that points at the same page', async () => {
+    await seed({ keyword: 'handbook', destination: PAGE })
+    await seed({ keyword: 'onboarding', destination: PAGE, owner: linus })
+
+    expect(paths(await list(ada, `${forDestination(PAGE)}&sort=keyword&order=asc`))).toEqual([
+      'go/handbook',
+      'go/onboarding',
+    ])
+  })
+
+  it('does not answer a prefix, a suffix, or a different fragment', async () => {
+    await seed({ keyword: 'handbook', destination: PAGE })
+
+    expect(await list(ada, forDestination('https://wiki.widgets.test'))).toEqual([])
+    expect(await list(ada, forDestination(`${PAGE}/`))).toEqual([])
+    expect(await list(ada, forDestination(`${PAGE}#leave`))).toEqual([])
+    expect(await list(ada, forDestination(`${PAGE}?print=1`))).toEqual([])
+  })
+
+  it('treats a wildcard in the destination as an ordinary character', async () => {
+    await seed({ keyword: 'handbook', destination: PAGE })
+
+    expect(await list(ada, forDestination('%'))).toEqual([])
+  })
+
+  it('combines with the other filters rather than widening the page', async () => {
+    await seed({ keyword: 'handbook', destination: PAGE, owner: ada })
+    await seed({ keyword: 'onboarding', destination: PAGE, owner: linus })
+
+    expect(paths(await list(ada, `${forDestination(PAGE)}&owner=me`))).toEqual(['go/handbook'])
+    expect(await list(ada, `${forDestination(PAGE)}&namespace=eng`)).toEqual([])
+  })
+
+  it('keeps the unlisted rule over the match (spec 03 §4)', async () => {
+    await seed({ keyword: 'secret', destination: PAGE, owner: ada, isUnlisted: true })
+
+    expect(paths(await list(ada, forDestination(PAGE)))).toEqual(['go/secret'])
+    expect(paths(await list(grace, forDestination(PAGE)))).toEqual(['go/secret'])
+    expect(await list(linus, forDestination(PAGE))).toEqual([])
+  })
+
+  it('never reaches another organization', async () => {
+    const { db } = database()
+    await insertOrganization(db, GIZMOS)
+    const stranger = await insertUser(db, { email: `zoe@${GIZMOS}`, organizationId: GIZMOS })
+    await seed({
+      keyword: 'handbook',
+      destination: PAGE,
+      organizationId: GIZMOS,
+      ownerId: stranger.id,
+    })
+
+    expect(await list(ada, forDestination(PAGE))).toEqual([])
+    expect(await list(grace, forDestination(PAGE))).toEqual([])
+  })
+
+  it('rejects an empty destination rather than reading it as no filter', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: `${LINKS_URL}?destination=`,
+      headers: ada.headers,
+    })
+
+    expect(response.statusCode).toBe(400)
+    expect(errorCodeOf(response)).toBe('validation_failed')
+  })
+})
+
 describe('sorting', () => {
   beforeEach(async () => {
     await seed({
