@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="24" viewBox="0 0 120 24" role="img" aria-label="Acme Links">
+  <rect x="0" y="0" width="24" height="24" rx="6" fill="#1f4b99"/>
+  <path d="M7 12h10M12 7l5 5-5 5" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="30" y="17" font-family="system-ui, sans-serif" font-size="14" font-weight="700" fill="#1f4b99">Acme Links</text>
+</svg>

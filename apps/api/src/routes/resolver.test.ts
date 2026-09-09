@@ -32,6 +32,8 @@ function settingsService(input: OrganizationSettingsInput = {}): OrganizationSet
     ensureOrganization: async () => {},
     getSettings: async () => settings,
     saveSettings: async () => settings,
+    managedPaths: () => [],
+    managedViolations: () => ({}),
     invalidate: () => {},
   }
 }

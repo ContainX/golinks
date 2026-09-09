@@ -100,3 +100,63 @@ The reverse proxy must route both the short host and the canonical host to the s
 Build the image with `docker build -t golinks .` or pull a published image from the GitHub Container Registry. The container runs the API, serves the web app, and applies migrations on start when `MIGRATE_ON_START=true` (or run `golinks migrate` as a separate deploy step). Postgres is the only stateful dependency; Redis holds sessions and caches and can be flushed at any time.
 
 Logs are structured JSON on stdout with a request id on every line and on every response. Readiness is `/_/health/ready`, liveness `/_/health/live`, and Prometheus metrics are served at `/_/metrics` when `METRICS_ENABLED=true`. Any number of replicas can run once `REDIS_URL` is set; background jobs coordinate through Postgres advisory locks.
+
+## Customizing a deployment
+
+Everything an organization can brand lives in its settings document: title, logo, favicon, colors for the light and dark schemes, banner, navigation links, and the admin list. Admins edit it in the app. A deployment can also fix any of those values from the outside, which is how a container on Kubernetes or ECS comes up already branded, with no one signing in to set it up. The API describes every field at `/_/api/v1/openapi.json`.
+
+### Settings overrides
+
+Give the service a partial settings document and its values win over whatever each organization has stored. There are two sources, and both can be used at once:
+
+- `CONFIG_DIR`: a directory holding `settings.json`. The image sets it to `/app/config`, so a downstream image only has to copy files there.
+- `SETTINGS_OVERRIDES_JSON`: the same document inline, for platforms where an environment variable is easier than a file. Its values win over the file's, field by field.
+
+A document that fixes the title, logo, and colors looks like this (the full example is in `examples/config/settings.json`):
+
+```json
+{
+  "branding": {
+    "title": "Acme Links",
+    "logoUrl": "/_/branding/logo.svg",
+    "primaryColor": "#1f4b99",
+    "dark": { "backgroundColor": "#0f1419" }
+  },
+  "admins": ["ops@acme.example"]
+}
+```
+
+Fields the deployment fixes show as read-only in the admin screen, and a write that tries to change one is rejected with the field named. Only fields whose change leaves existing links untouched can be fixed this way: `branding`, `banner`, `navigationLinks`, `admins`, `editMode`, `readOnly`, and `keywords.allowedPattern`. The default namespace, the namespace list, punctuation sensitivity, and the resolution mode rewrite or recheck keywords when they change, so they are set by an admin in the app or with the import command below. A document with a field outside that list stops the service at startup with a message saying why.
+
+To set up an organization by script, including the fields above, use the command line inside the container:
+
+```bash
+golinks settings export acme.example > settings.json   # the effective document
+golinks settings import acme.example settings.json     # same validation and rules as the admin screen
+```
+
+### Branding files
+
+Files under `CONFIG_DIR/branding/` are served at `/_/branding/<file>`, so a logo shipped with the deployment is referenced as `/_/branding/logo.svg` in the settings document. Any URL works too; the directory just spares you a separate host for one image.
+
+When the overrides set the title or a scheme's background color, the page served before the app's bundle runs already carries them, so the first paint matches.
+
+### Docker, Kubernetes, and ECS
+
+A downstream image needs one line:
+
+```dockerfile
+FROM ghcr.io/containx/golinks:latest
+COPY config/ /app/config/
+```
+
+On Kubernetes, mount a ConfigMap with `settings.json` at `/app/config` and, if there is a logo, a second one at `/app/config/branding`. On ECS, either bake the directory into the image as above or set `SETTINGS_OVERRIDES_JSON` in the task definition and point `logoUrl` at a URL you host. Either way the overrides are applied on every read, so a change ships with the next deployment and never needs a database migration.
+
+### Customizing a fork
+
+A fork that wants different visual defaults, rather than per-deployment settings, has two files upstream never changes:
+
+- `apps/web/src/branding/overrides.ts`: default light and dark colors, font family names, and the corner radius. Runtime branding from the settings document still wins over these, so an organization can restyle itself without a rebuild.
+- `apps/web/src/branding/fonts.ts`: the font packages the app bundles. Swap the imports here and name the families in `overrides.ts`.
+
+Keep everything else in `apps/web/src/app/theme.ts` as it is and merges from upstream stay clean.

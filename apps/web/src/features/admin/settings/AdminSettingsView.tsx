@@ -4,10 +4,17 @@
  *
  * `PUT /admin/settings` replaces the document rather than merging into it, so
  * the form holds every field, starts from what `GET` answered, and sends the
- * lot back. Four of those fields describe the keyword space, and changing one
- * can be refused by the links that already exist; those refusals are rendered
- * beside the field that caused them (see `settingsConflicts.ts`) instead of as
- * one message at the top.
+ * lot back — including the fields this screen has no input for, such as the
+ * per-scheme branding colors, which pass through untouched. Four of those
+ * fields describe the keyword space, and changing one can be refused by the
+ * links that already exist; those refusals are rendered beside the field that
+ * caused them (see `settingsConflicts.ts`) instead of as one message at the top.
+ *
+ * A deployment may fix settings for every organization it hosts (spec 06 §6);
+ * `me.app.managedSettings` names them. Those inputs are disabled and say so,
+ * and the ones with no input on this screen are named in a notice at the top,
+ * so that an admin learns which settings are not theirs to change here rather
+ * than only when the API refuses the save.
  */
 
 import type { OrganizationSettings } from '@golinks/shared/settings'
@@ -34,8 +41,46 @@ import type { ReactNode } from 'react'
 import { useEffect, useState } from 'react'
 import { validationFields } from '../../../api/errors.ts'
 import { useAdminSettings, usePutAdminSettings } from '../../../queries/admin.ts'
+import { useMe } from '../../../queries/me.ts'
 import { SettingsConflictAlert } from './SettingsConflictAlert.tsx'
 import { readSettingsConflict } from './settingsConflicts.ts'
+
+/** Said under every input the deployment fixes. */
+const MANAGED_NOTE = 'Fixed by the deployment.'
+
+/** How an admin reads each settings path a deployment may fix (spec 06 §6). */
+const MANAGED_LABELS: Record<string, string> = {
+  defaultNamespace: 'Default namespace',
+  namespaces: 'Namespaces',
+  keywords: 'Keywords',
+  'keywords.allowedPattern': 'Allowed pattern',
+  'keywords.punctuationSensitive': 'Punctuation sensitivity',
+  'keywords.resolutionMode': 'Resolution mode',
+  editMode: 'Edit mode',
+  readOnly: 'Read-only',
+  admins: 'Admins',
+  banner: 'Banner',
+  navigationLinks: 'Navigation links',
+  branding: 'Branding',
+  'branding.title': 'Title',
+  'branding.logoUrl': 'Logo URL',
+  'branding.faviconUrl': 'Favicon URL',
+  'branding.primaryColor': 'Primary color',
+  'branding.secondaryColor': 'Secondary color',
+  'branding.light.primaryColor': 'Light primary color',
+  'branding.light.secondaryColor': 'Light secondary color',
+  'branding.light.backgroundColor': 'Light background color',
+  'branding.light.surfaceColor': 'Light surface color',
+  'branding.dark.primaryColor': 'Dark primary color',
+  'branding.dark.secondaryColor': 'Dark secondary color',
+  'branding.dark.backgroundColor': 'Dark background color',
+  'branding.dark.surfaceColor': 'Dark surface color',
+}
+
+/** A managed path in words; a path this screen has no name for is shown as it stands. */
+function managedLabel(path: string): string {
+  return MANAGED_LABELS[path] ?? path
+}
 
 /** One titled block of the form. */
 function Section({ title, description, children }: SectionProps) {
@@ -59,7 +104,14 @@ interface SectionProps {
 }
 
 /** A list of short values an admin adds to and removes from, shown as chips. */
-function ChipListField({ label, placeholder, values, onChange, error }: ChipListFieldProps) {
+function ChipListField({
+  label,
+  placeholder,
+  values,
+  onChange,
+  error,
+  disabled = false,
+}: ChipListFieldProps) {
   const [draft, setDraft] = useState('')
 
   function add(): void {
@@ -79,15 +131,20 @@ function ChipListField({ label, placeholder, values, onChange, error }: ChipList
             None yet.
           </Typography>
         ) : null}
-        {values.map((value, index) => (
-          <Chip
+        {values.map((value, index) =>
+          disabled ? (
             // biome-ignore lint/suspicious/noArrayIndexKey: the document stores an ordered list of plain strings that may repeat until the API refuses them, so a position is the only identity an entry has.
-            key={`${value}-${index}`}
-            label={value}
-            onDelete={() => onChange(values.filter((_item, at) => at !== index))}
-            deleteIcon={<CancelIcon aria-label={`Remove ${value}`} />}
-          />
-        ))}
+            <Chip key={`${value}-${index}`} label={value} disabled />
+          ) : (
+            <Chip
+              // biome-ignore lint/suspicious/noArrayIndexKey: the document stores an ordered list of plain strings that may repeat until the API refuses them, so a position is the only identity an entry has.
+              key={`${value}-${index}`}
+              label={value}
+              onDelete={() => onChange(values.filter((_item, at) => at !== index))}
+              deleteIcon={<CancelIcon aria-label={`Remove ${value}`} />}
+            />
+          ),
+        )}
       </Stack>
       <Stack direction="row" spacing={1}>
         <TextField
@@ -104,10 +161,11 @@ function ChipListField({ label, placeholder, values, onChange, error }: ChipList
             }
           }}
           error={error !== undefined}
-          helperText={error}
+          helperText={error ?? (disabled ? MANAGED_NOTE : undefined)}
+          disabled={disabled}
           sx={{ width: 320 }}
         />
-        <Button startIcon={<AddIcon />} onClick={add}>
+        <Button startIcon={<AddIcon />} onClick={add} disabled={disabled}>
           Add
         </Button>
       </Stack>
@@ -121,10 +179,11 @@ interface ChipListFieldProps {
   values: readonly string[]
   onChange: (values: string[]) => void
   error?: string | undefined
+  disabled?: boolean
 }
 
 /** A color as `#rrggbb`, with the color itself shown beside the value. */
-function ColorField({ label, value, onChange, error }: ColorFieldProps) {
+function ColorField({ label, value, onChange, error, disabled = false }: ColorFieldProps) {
   return (
     <TextField
       label={label}
@@ -132,7 +191,11 @@ function ColorField({ label, value, onChange, error }: ColorFieldProps) {
       placeholder="#1f4b99"
       onChange={(event) => onChange(event.target.value.trim() === '' ? null : event.target.value)}
       error={error !== undefined}
-      helperText={error ?? 'Written as #rrggbb. Leave empty for the default palette.'}
+      helperText={
+        error ??
+        (disabled ? MANAGED_NOTE : 'Written as #rrggbb. Leave empty for the default palette.')
+      }
+      disabled={disabled}
       sx={{ width: 320 }}
       slotProps={{
         input: {
@@ -162,6 +225,7 @@ interface ColorFieldProps {
   value: string | null
   onChange: (value: string | null) => void
   error?: string | undefined
+  disabled?: boolean
 }
 
 /** An optional URL: the empty field means "not set", which the document stores as null. */
@@ -170,6 +234,7 @@ function nullableUrl(value: string): string | null {
 }
 
 export function AdminSettingsView() {
+  const me = useMe()
   const settings = useAdminSettings()
   const save = usePutAdminSettings()
   const [form, setForm] = useState<OrganizationSettings | null>(null)
@@ -197,6 +262,7 @@ export function AdminSettingsView() {
 
   const fieldErrors = validationFields(save.error) ?? {}
   const conflict = readSettingsConflict(save.error)
+  const managedSettings = me.data?.app.managedSettings ?? []
 
   function update(change: Partial<OrganizationSettings>): void {
     setForm((current) => (current === null ? current : { ...current, ...change }))
@@ -206,6 +272,22 @@ export function AdminSettingsView() {
   function fieldError(path: string): string | undefined {
     return fieldErrors[path]
   }
+
+  /**
+   * True when the deployment fixes this setting, or the setting it sits in:
+   * `branding` being managed fixes `branding.title` with it (spec 06 §6).
+   */
+  function isManaged(path: string): boolean {
+    return managedSettings.some((fixed) => path === fixed || path.startsWith(`${fixed}.`))
+  }
+
+  /** What an input says under itself: the API's refusal first, then the deployment's. */
+  function helperFor(path: string, fallback?: string): string | undefined {
+    return fieldError(path) ?? (isManaged(path) ? MANAGED_NOTE : fallback)
+  }
+
+  // The whole list is one setting, so every control in it moves together.
+  const navigationIsManaged = isManaged('navigationLinks')
 
   /** Messages the API attached to entries of a list, as one line. */
   function listError(prefix: string): string | undefined {
@@ -230,6 +312,17 @@ export function AdminSettingsView() {
       }}
     >
       <Stack spacing={2}>
+        {managedSettings.length > 0 ? (
+          <Alert severity="info">
+            <Typography variant="body2">
+              Some settings are fixed by this deployment and cannot be changed here.
+            </Typography>
+            <Typography variant="body2" sx={{ mt: 0.5, fontWeight: 600 }}>
+              {managedSettings.map(managedLabel).join(', ')}
+            </Typography>
+          </Alert>
+        ) : null}
+
         <Section
           title="Namespaces"
           description="The default namespace is what a bare keyword resolves under; every other namespace is reached by naming it first."
@@ -266,10 +359,11 @@ export function AdminSettingsView() {
               update({ keywords: { ...form.keywords, allowedPattern: event.target.value } })
             }
             error={fieldError('keywords.allowedPattern') !== undefined}
-            helperText={
-              fieldError('keywords.allowedPattern') ??
-              'A regular expression. It applies to new and renamed keywords only.'
-            }
+            helperText={helperFor(
+              'keywords.allowedPattern',
+              'A regular expression. It applies to new and renamed keywords only.',
+            )}
+            disabled={isManaged('keywords.allowedPattern')}
             fullWidth
           />
           <FormControlLabel
@@ -325,7 +419,8 @@ export function AdminSettingsView() {
             onChange={(event) =>
               update({ editMode: event.target.value as OrganizationSettings['editMode'] })
             }
-            helperText="Who may change a link's destination."
+            helperText={helperFor('editMode', "Who may change a link's destination.")}
+            disabled={isManaged('editMode')}
             sx={{ width: 320 }}
           >
             <MenuItem value="ownersAndAdmins">Owners and admins</MenuItem>
@@ -339,6 +434,7 @@ export function AdminSettingsView() {
               />
             }
             label="Read-only"
+            disabled={isManaged('readOnly')}
           />
           <ChipListField
             label="Add admin email"
@@ -346,6 +442,7 @@ export function AdminSettingsView() {
             values={form.admins}
             onChange={(admins) => update({ admins })}
             error={listError('admins')}
+            disabled={isManaged('admins')}
           />
         </Section>
 
@@ -358,6 +455,7 @@ export function AdminSettingsView() {
               <Button
                 startIcon={<AddIcon />}
                 onClick={() => update({ banner: { text: '', url: null, level: 'info' } })}
+                disabled={isManaged('banner')}
               >
                 Add banner
               </Button>
@@ -374,7 +472,8 @@ export function AdminSettingsView() {
                   })
                 }
                 error={fieldError('banner.text') !== undefined}
-                helperText={fieldError('banner.text')}
+                helperText={helperFor('banner.text')}
+                disabled={isManaged('banner')}
                 fullWidth
               />
               <TextField
@@ -389,7 +488,8 @@ export function AdminSettingsView() {
                   })
                 }
                 error={fieldError('banner.url') !== undefined}
-                helperText={fieldError('banner.url') ?? 'Optional. Makes the banner a link.'}
+                helperText={helperFor('banner.url', 'Optional. Makes the banner a link.')}
+                disabled={isManaged('banner')}
                 fullWidth
               />
               <TextField
@@ -409,13 +509,19 @@ export function AdminSettingsView() {
                           },
                   })
                 }
+                helperText={helperFor('banner.level')}
+                disabled={isManaged('banner')}
                 sx={{ width: 320 }}
               >
                 <MenuItem value="info">Info</MenuItem>
                 <MenuItem value="warning">Warning</MenuItem>
               </TextField>
               <Box>
-                <Button color="inherit" onClick={() => update({ banner: null })}>
+                <Button
+                  color="inherit"
+                  onClick={() => update({ banner: null })}
+                  disabled={isManaged('banner')}
+                >
                   Clear banner
                 </Button>
               </Box>
@@ -434,7 +540,8 @@ export function AdminSettingsView() {
               update({ branding: { ...form.branding, title: event.target.value } })
             }
             error={fieldError('branding.title') !== undefined}
-            helperText={fieldError('branding.title')}
+            helperText={helperFor('branding.title')}
+            disabled={isManaged('branding.title')}
             sx={{ width: 320 }}
           />
           <TextField
@@ -444,7 +551,8 @@ export function AdminSettingsView() {
               update({ branding: { ...form.branding, logoUrl: nullableUrl(event.target.value) } })
             }
             error={fieldError('branding.logoUrl') !== undefined}
-            helperText={fieldError('branding.logoUrl')}
+            helperText={helperFor('branding.logoUrl')}
+            disabled={isManaged('branding.logoUrl')}
             fullWidth
           />
           <TextField
@@ -456,7 +564,8 @@ export function AdminSettingsView() {
               })
             }
             error={fieldError('branding.faviconUrl') !== undefined}
-            helperText={fieldError('branding.faviconUrl')}
+            helperText={helperFor('branding.faviconUrl')}
+            disabled={isManaged('branding.faviconUrl')}
             fullWidth
           />
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
@@ -465,6 +574,7 @@ export function AdminSettingsView() {
               value={form.branding.primaryColor}
               onChange={(primaryColor) => update({ branding: { ...form.branding, primaryColor } })}
               error={fieldError('branding.primaryColor')}
+              disabled={isManaged('branding.primaryColor')}
             />
             <ColorField
               label="Secondary color"
@@ -473,6 +583,7 @@ export function AdminSettingsView() {
                 update({ branding: { ...form.branding, secondaryColor } })
               }
               error={fieldError('branding.secondaryColor')}
+              disabled={isManaged('branding.secondaryColor')}
             />
           </Stack>
         </Section>
@@ -481,6 +592,11 @@ export function AdminSettingsView() {
           title="Navigation links"
           description="Entries shown beside the app's own navigation. Admin-only entries are hidden from members."
         >
+          {navigationIsManaged ? (
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+              {MANAGED_NOTE}
+            </Typography>
+          ) : null}
           {form.navigationLinks.length === 0 ? (
             <Typography variant="body2" sx={{ color: 'text.secondary' }}>
               None yet.
@@ -507,6 +623,7 @@ export function AdminSettingsView() {
                 }
                 error={fieldError(`navigationLinks[${index}].text`) !== undefined}
                 helperText={fieldError(`navigationLinks[${index}].text`)}
+                disabled={navigationIsManaged}
                 sx={{ width: 220 }}
               />
               <TextField
@@ -522,6 +639,7 @@ export function AdminSettingsView() {
                 }
                 error={fieldError(`navigationLinks[${index}].url`) !== undefined}
                 helperText={fieldError(`navigationLinks[${index}].url`)}
+                disabled={navigationIsManaged}
                 sx={{ flexGrow: 1 }}
               />
               <FormControlLabel
@@ -538,9 +656,11 @@ export function AdminSettingsView() {
                   />
                 }
                 label={`Admins only ${index + 1}`}
+                disabled={navigationIsManaged}
               />
               <IconButton
                 aria-label={`Remove navigation link ${index + 1}`}
+                disabled={navigationIsManaged}
                 onClick={() =>
                   update({
                     navigationLinks: form.navigationLinks.filter((_entry, at) => at !== index),
@@ -554,6 +674,7 @@ export function AdminSettingsView() {
           <Box>
             <Button
               startIcon={<AddIcon />}
+              disabled={navigationIsManaged}
               onClick={() =>
                 update({
                   navigationLinks: [

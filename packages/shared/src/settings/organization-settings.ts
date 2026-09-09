@@ -23,8 +23,8 @@ export const DEFAULT_NAMESPACE = 'go'
 export const DEFAULT_BRANDING_TITLE = 'GoLinks'
 
 const MAX_NAMESPACES = 50
-const MAX_ADMINS = 500
-const MAX_NAVIGATION_LINKS = 20
+export const MAX_ADMINS = 500
+export const MAX_NAVIGATION_LINKS = 20
 const MAX_URL_LENGTH = 2048
 
 /** `#rrggbb`, matched after the value has been lowercased. */
@@ -37,7 +37,7 @@ const absoluteHttpUrl = z.url({ protocol: /^https?$/ })
  * path rooted at this service. Protocol-relative values (`//host`) and every other scheme are
  * rejected so that settings cannot be used to inject `javascript:` targets into the web app.
  */
-const AdminSuppliedUrlSchema = z
+export const AdminSuppliedUrlSchema = z
   .string()
   .trim()
   .min(1, 'A URL is required.')
@@ -74,21 +74,22 @@ export type KeywordResolutionMode = z.infer<typeof KeywordResolutionModeSchema>
  * `allowedPattern` must compile as a regular expression; the invariants in spec 03 section 2.3
  * hold whatever the pattern says.
  */
+export const KeywordAllowedPatternSchema = z
+  .string()
+  .trim()
+  .min(1, 'An allowed pattern is required.')
+  .max(1000)
+  .refine((pattern) => {
+    try {
+      new RegExp(pattern)
+      return true
+    } catch {
+      return false
+    }
+  }, 'The allowed pattern must be a valid regular expression.')
+
 export const KeywordRulesSchema = z.strictObject({
-  allowedPattern: z
-    .string()
-    .trim()
-    .min(1, 'An allowed pattern is required.')
-    .max(1000)
-    .refine((pattern) => {
-      try {
-        new RegExp(pattern)
-        return true
-      } catch {
-        return false
-      }
-    }, 'The allowed pattern must be a valid regular expression.')
-    .default(DEFAULT_KEYWORD_ALLOWED_PATTERN),
+  allowedPattern: KeywordAllowedPatternSchema.default(DEFAULT_KEYWORD_ALLOWED_PATTERN),
   punctuationSensitive: z.boolean().default(true),
   resolutionMode: KeywordResolutionModeSchema.default('standard'),
 })
@@ -116,25 +117,51 @@ export const OrganizationBannerSchema = z.strictObject({
 
 export type OrganizationBanner = z.infer<typeof OrganizationBannerSchema>
 
-/** Title, logo, and colors applied to the web app. */
+/** One `#rrggbb` color, lowercased. */
+export const HexColorSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .regex(HEX_COLOR_PATTERN, 'A color must be written as #rrggbb.')
+
+/** A branding color, or `null` for the app's own default. */
+const BrandingColorSchema = HexColorSchema.nullable().default(null)
+
+/** The header and page title. */
+export const BrandingTitleSchema = z.string().trim().min(1, 'A title is required.').max(120)
+
+/**
+ * The colors of one color scheme, light or dark. Every one of them is optional: a scheme
+ * without a value falls back to the scheme-independent brand colors, and past those to the
+ * app's own palette.
+ */
+export const BrandingSchemeColorsSchema = z.strictObject({
+  /** The brand color for actions and the active state. */
+  primaryColor: BrandingColorSchema,
+  secondaryColor: BrandingColorSchema,
+  /** The page ground. */
+  backgroundColor: BrandingColorSchema,
+  /** The surface cards, tables, and dialogs sit on. */
+  surfaceColor: BrandingColorSchema,
+})
+
+export type BrandingSchemeColors = z.infer<typeof BrandingSchemeColorsSchema>
+
+/**
+ * Title, logo, and colors applied to the web app.
+ *
+ * `primaryColor` and `secondaryColor` apply to both color schemes; the dark scheme lightens
+ * them until they read on a dark surface. `light` and `dark` fine-tune one scheme at a time
+ * and win over the shared pair.
+ */
 export const OrganizationBrandingSchema = z.strictObject({
-  title: z.string().trim().min(1, 'A title is required.').max(120).default(DEFAULT_BRANDING_TITLE),
+  title: BrandingTitleSchema.default(DEFAULT_BRANDING_TITLE),
   logoUrl: AdminSuppliedUrlSchema.nullable().default(null),
   faviconUrl: AdminSuppliedUrlSchema.nullable().default(null),
-  primaryColor: z
-    .string()
-    .trim()
-    .toLowerCase()
-    .regex(HEX_COLOR_PATTERN, 'A color must be written as #rrggbb.')
-    .nullable()
-    .default(null),
-  secondaryColor: z
-    .string()
-    .trim()
-    .toLowerCase()
-    .regex(HEX_COLOR_PATTERN, 'A color must be written as #rrggbb.')
-    .nullable()
-    .default(null),
+  primaryColor: BrandingColorSchema,
+  secondaryColor: BrandingColorSchema,
+  light: BrandingSchemeColorsSchema.prefault({}),
+  dark: BrandingSchemeColorsSchema.prefault({}),
 })
 
 export type OrganizationBranding = z.infer<typeof OrganizationBrandingSchema>
@@ -149,7 +176,7 @@ export const OrganizationNavigationLinkSchema = z.strictObject({
 export type OrganizationNavigationLink = z.infer<typeof OrganizationNavigationLinkSchema>
 
 /** An email that receives the admin role at sign-in (spec 01 section 2.3). */
-const AdminEmailSchema = z
+export const AdminEmailSchema = z
   .string()
   .trim()
   .toLowerCase()
@@ -238,7 +265,7 @@ export type ParseOrganizationSettingsResult =
 /** The key used for problems that belong to the document as a whole. */
 const ROOT_FIELD = 'settings'
 
-function formatFieldPath(path: ReadonlyArray<PropertyKey>): string {
+export function formatFieldPath(path: ReadonlyArray<PropertyKey>): string {
   if (path.length === 0) return ROOT_FIELD
   let formatted = ''
   for (const segment of path) {

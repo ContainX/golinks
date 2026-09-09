@@ -278,6 +278,9 @@ const environmentVariables = z.object({
   METRICS_ENABLED: booleanVariable.default(false),
   JOBS_ENABLED: booleanVariable.default(true),
   WEB_DIST_PATH: z.string().trim().min(1).optional(),
+
+  CONFIG_DIR: z.string().trim().min(1).optional(),
+  SETTINGS_OVERRIDES_JSON: z.string().trim().min(1).optional(),
 })
 
 // --- the shape the application actually uses --------------------------------
@@ -342,6 +345,17 @@ export interface DeploymentConfig {
   /** Whether this replica runs the scheduled background jobs (spec 09 §1). */
   jobs: { enabled: boolean }
   webDistPath: string | undefined
+  /**
+   * Directory the deployment mounts its own configuration in (spec 06 §6): `settings.json`
+   * holds the organization settings it fixes, and `branding/` the files served under
+   * `/_/branding`. Undefined when nothing is configured from the outside.
+   */
+  configDir: string | undefined
+  /**
+   * The same settings document inline, as JSON. Its fields win over the ones read from
+   * `<configDir>/settings.json` (spec 06 §6).
+   */
+  settingsOverridesJson: string | undefined
 }
 
 const LOOPBACK_HOSTNAMES = new Set(['localhost', '127.0.0.1', '[::1]', '::1'])
@@ -423,6 +437,8 @@ function toDeploymentConfig(variables: z.output<typeof environmentVariables>): D
     metrics: { enabled: variables.METRICS_ENABLED },
     jobs: { enabled: variables.JOBS_ENABLED },
     webDistPath: variables.WEB_DIST_PATH,
+    configDir: variables.CONFIG_DIR,
+    settingsOverridesJson: variables.SETTINGS_OVERRIDES_JSON,
   }
 }
 

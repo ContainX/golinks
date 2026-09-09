@@ -9,9 +9,18 @@
 //
 // The shared layer is optional in every sense: a service without one behaves exactly as before,
 // and one whose Redis has stopped answering falls back to the in-process cache alone.
+//
+// A deployment may fix some of these settings from the outside (spec 06 §6). Those values are
+// laid over a document as it enters the in-process cache, never on the way out of it, because
+// the resolver reads settings on every request and a cache hit has to stay a lookup.
 
 import {
+  applyDeploymentSettingsOverrides,
   DEFAULT_ORGANIZATION_SETTINGS,
+  type DeploymentSettingsOverrides,
+  managedSettingsPaths,
+  managedSettingsViolations,
+  NO_DEPLOYMENT_OVERRIDES,
   type OrganizationSettings,
   type OrganizationSettingsValidationError,
   parseOrganizationSettings,
@@ -39,6 +48,11 @@ export interface OrganizationSettingsServiceOptions {
    * only its in-process copy, which is the right shape for a single replica.
    */
   sharedCache?: SharedSettingsCache
+  /**
+   * The settings this deployment fixes for every organization (spec 06 §6). Every read
+   * answers with them applied, and a write that changes one of them is refused.
+   */
+  overrides?: DeploymentSettingsOverrides
 }
 
 export interface OrganizationSettingsService {
@@ -50,8 +64,18 @@ export interface OrganizationSettingsService {
    * defaults, with a warning, so one bad row never takes the resolver down.
    */
   getSettings(organizationId: string): Promise<OrganizationSettings>
-  /** Validates, persists (creating the organization if needed), and returns the document. */
+  /**
+   * Validates, persists (creating the organization if needed), and returns the document.
+   * Refuses a document that changes a value the deployment fixes (spec 06 §6).
+   */
   saveSettings(organizationId: string, document: unknown): Promise<OrganizationSettings>
+  /** The dotted settings paths the deployment fixes, sorted; empty when it fixes none. */
+  managedPaths(): readonly string[]
+  /**
+   * The managed values a document tries to change, keyed by path, with the message an admin
+   * gets back. Empty when the document leaves every one of them as the deployment fixed it.
+   */
+  managedViolations(document: OrganizationSettings): Record<string, string>
   /**
    * Drops this process's cached copy so the next read goes further down. The shared copy is
    * left alone: it is dropped by a write, which is the only event every replica has to see.
@@ -79,11 +103,20 @@ export function createOrganizationSettingsService(
   const now = options.now ?? Date.now
   const logger = options.logger
   const shared = options.sharedCache
+  const overrides = options.overrides ?? NO_DEPLOYMENT_OVERRIDES
+  const managed = managedSettingsPaths(overrides)
   const cache = new Map<string, CacheEntry>()
 
+  /**
+   * Caches the effective document: the stored one with the deployment's values laid over it.
+   * Both cache layers below hand their answer through here, so the overrides are applied once
+   * per cache fill rather than once per read.
+   */
   function remember(organizationId: string, settings: OrganizationSettings): OrganizationSettings {
-    cache.set(organizationId, { settings, expiresAt: now() + ttl })
-    return settings
+    const effective =
+      managed.length === 0 ? settings : applyDeploymentSettingsOverrides(settings, overrides)
+    cache.set(organizationId, { settings: effective, expiresAt: now() + ttl })
+    return effective
   }
 
   /** Reads the database and fills both caches. */
@@ -129,9 +162,22 @@ export function createOrganizationSettingsService(
       return remember(organizationId, settings)
     },
 
+    managedPaths: () => managed,
+
+    managedViolations: (document) => managedSettingsViolations(document, overrides),
+
     async saveSettings(organizationId, document) {
       const parsed = parseOrganizationSettings(document)
       if (!parsed.ok) throw new InvalidOrganizationSettingsError(parsed.error)
+
+      const violations = managedSettingsViolations(parsed.settings, overrides)
+      if (Object.keys(violations).length > 0) {
+        throw new InvalidOrganizationSettingsError({
+          code: 'validation_failed',
+          message: 'Some of these settings are fixed by the deployment.',
+          fields: violations,
+        })
+      }
 
       await db
         .insert(organizations)

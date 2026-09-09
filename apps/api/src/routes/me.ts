@@ -84,6 +84,9 @@ export function registerMeRoutes(app: GoLinksApp): void {
         baseUrl: config.baseUrl,
         shortHost: config.shortHost,
         version: SERVICE_VERSION,
+        // Spec 06 §6: the settings this deployment fixes, so the admin screen can show those
+        // fields as read-only instead of letting a write be refused.
+        managedSettings: [...app.organizationSettings.managedPaths()],
       },
     }
   }

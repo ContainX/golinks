@@ -1,6 +1,8 @@
 import react from '@vitejs/plugin-react'
 import { searchForWorkspaceRoot } from 'vite'
 import { defineConfig } from 'vitest/config'
+import { brandingIndexHtmlPlugin } from './src/branding/indexHtml.ts'
+import { brandingOverrides } from './src/branding/overrides.ts'
 
 // In development the API runs separately; everything under /_/ that is not a
 // client route is proxied to it. The build output is served by the API in production.
@@ -12,14 +14,16 @@ const api = process.env.API_ORIGIN ?? 'http://localhost:3000'
 const workspaceRoot = searchForWorkspaceRoot(import.meta.dirname)
 
 export default defineConfig({
-  plugins: [react()],
+  // The deployment's own ground colors reach index.html here, so the frame
+  // painted before the bundle evaluates is already the right one.
+  plugins: [react(), brandingIndexHtmlPlugin(brandingOverrides)],
   server: {
     port: 5173,
     // Server-owned paths (spec 04 §1). Every other path the dev server is asked
     // for falls back to index.html, which is what makes /_/login, /_/admin/users
     // and /_/transfer/<token> load on a cold request.
     proxy: Object.fromEntries(
-      ['/_/api', '/_/auth', '/_/health', '/_/opensearch.xml'].map((prefix) => [
+      ['/_/api', '/_/auth', '/_/branding', '/_/health', '/_/opensearch.xml'].map((prefix) => [
         prefix,
         {
           target: api,

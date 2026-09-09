@@ -4,6 +4,7 @@
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import type { DeploymentConfig } from '@golinks/shared/config'
+import { type DeploymentSettingsOverrides, NO_DEPLOYMENT_OVERRIDES } from '@golinks/shared/settings'
 import Fastify, { type FastifyRequest, type FastifyServerOptions } from 'fastify'
 import {
   serializerCompiler,
@@ -16,6 +17,7 @@ import { registerErrorHandling } from './error-handler.ts'
 import { buildLoggerOptions, createRequestIdGenerator, REQUEST_ID_HEADER } from './logging.ts'
 import { registerMetrics } from './metrics/plugin.ts'
 import { registerOpenApi } from './openapi/plugin.ts'
+import { brandingDirectoryOf } from './organizations/deployment-overrides.ts'
 import {
   createOrganizationSettingsService,
   type OrganizationSettingsService,
@@ -56,6 +58,12 @@ export interface BuildAppOptions {
   database?: Database
   /** Overrides the settings service, which is otherwise built on `database`. */
   organizationSettings?: OrganizationSettingsService
+  /**
+   * The organization settings this deployment fixes (spec 06 §6). They reach every read
+   * through the settings service built here when none is passed, and the app shell's first
+   * paint either way.
+   */
+  settingsOverrides?: DeploymentSettingsOverrides
   /** How `request.member` is populated. Defaults to "nobody is signed in". */
   memberResolver?: MemberResolver
   /** Server-side session store. Defaults to the in-process store (spec 02 §3). */
@@ -98,6 +106,7 @@ export async function buildApp(options: BuildAppOptions): Promise<GoLinksApp> {
     .setSerializerCompiler(serializerCompiler)
     .withTypeProvider<ZodTypeProvider>()
 
+  const settingsOverrides = options.settingsOverrides ?? NO_DEPLOYMENT_OVERRIDES
   const readinessChecks: ReadinessCheck[] = [...(options.readinessChecks ?? [])]
   let subjectResolver: RateLimitSubjectResolver = defaultRateLimitSubjectResolver
 
@@ -117,7 +126,10 @@ export async function buildApp(options: BuildAppOptions): Promise<GoLinksApp> {
   let settingsService = options.organizationSettings
   app.decorate('organizationSettings', {
     getter: () => {
-      settingsService ??= createOrganizationSettingsService(app.db, { logger: app.log })
+      settingsService ??= createOrganizationSettingsService(app.db, {
+        logger: app.log,
+        overrides: settingsOverrides,
+      })
       return settingsService
     },
   })
@@ -176,6 +188,8 @@ export async function buildApp(options: BuildAppOptions): Promise<GoLinksApp> {
   registerStaticAssets(app, {
     publicPath: options.publicPath ?? assets.publicPath,
     webDistPath: chooseWebDistPath(options, assets.webDistPath),
+    brandingPath: brandingDirectoryOf(config),
+    settingsOverrides,
   })
 
   for (const plugin of options.plugins ?? []) await plugin(app)

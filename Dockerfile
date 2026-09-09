@@ -49,7 +49,8 @@ FROM node:${NODE_VERSION}-slim AS runtime
 
 ENV NODE_ENV=production \
     PORT=3000 \
-    MIGRATE_ON_START=false
+    MIGRATE_ON_START=false \
+    CONFIG_DIR=/app/config
 
 WORKDIR /app
 
@@ -67,6 +68,12 @@ COPY --from=build --chown=node:node /app/apps/web/dist ./apps/web/dist
 COPY --chown=node:node docker/entrypoint.sh /usr/local/bin/golinks-entrypoint
 
 RUN chmod +x /usr/local/bin/golinks-entrypoint
+
+# The deployment's own configuration (spec 06 section 6). Empty in this image, and read only
+# if something is put there: settings.json fixes organization settings, and every file under
+# branding/ is served at /_/branding. A downstream image adds `COPY config/ /app/config/`; a
+# Kubernetes deployment mounts ConfigMaps or secrets over the same paths.
+RUN mkdir -p /app/config/branding && chown -R node:node /app/config
 
 USER node
 EXPOSE 3000

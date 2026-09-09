@@ -84,3 +84,29 @@ describe('EXTENSION_ORIGINS (spec 06 §1, spec 12 §3)', () => {
     expect(describeConfig(parse()).extensionOrigins).toEqual([])
   })
 })
+
+describe('CONFIG_DIR and SETTINGS_OVERRIDES_JSON (spec 06 §1, §6)', () => {
+  it('are undefined on a deployment that configures nothing from the outside', () => {
+    const config = parse()
+
+    expect(config.configDir).toBeUndefined()
+    expect(config.settingsOverridesJson).toBeUndefined()
+  })
+
+  it('are read as written, trimmed', () => {
+    const config = parse({
+      CONFIG_DIR: ' /app/config ',
+      SETTINGS_OVERRIDES_JSON: ' {"readOnly":true} ',
+    })
+
+    expect(config.configDir).toBe('/app/config')
+    expect(config.settingsOverridesJson).toBe('{"readOnly":true}')
+  })
+
+  it('treat an empty value as unset, so a blank variable is not a directory', () => {
+    const config = parse({ CONFIG_DIR: '', SETTINGS_OVERRIDES_JSON: '   ' })
+
+    expect(config.configDir).toBeUndefined()
+    expect(config.settingsOverridesJson).toBeUndefined()
+  })
+})

@@ -51,6 +51,8 @@ export function brandingFixture(
     faviconUrl: null,
     primaryColor: null,
     secondaryColor: null,
+    light: { primaryColor: null, secondaryColor: null, backgroundColor: null, surfaceColor: null },
+    dark: { primaryColor: null, secondaryColor: null, backgroundColor: null, surfaceColor: null },
     ...overrides,
   }
 }
@@ -113,6 +115,7 @@ export function meFixture(overrides: MeOverrides = {}): Me {
       baseUrl: 'https://links.example.com',
       shortHost: 'go',
       version: '1.0.0',
+      managedSettings: [],
       ...overrides.app,
     },
   }

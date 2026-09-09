@@ -17,6 +17,7 @@ import {
   initializeDatabase,
 } from './db/client.ts'
 import { startBackgroundJobs } from './jobs/index.ts'
+import { loadDeploymentSettingsOverrides } from './organizations/deployment-overrides.ts'
 import {
   createRedisSettingsCache,
   type SettingsRedisClient,
@@ -77,6 +78,9 @@ async function main(): Promise<void> {
   try {
     loadDotEnvIfPresent()
     const config = loadConfig()
+    // Spec 06 §6: the settings this deployment fixes, read and validated before anything is
+    // opened, so a document the service cannot honour stops the process here.
+    const deploymentOverrides = loadDeploymentSettingsOverrides(config)
     // The pool opens lazily; readiness (spec 05 §3) is what proves Postgres answers.
     initializeDatabase(config.databaseUrl)
 
@@ -98,6 +102,7 @@ async function main(): Promise<void> {
           })
     const organizationSettings = createOrganizationSettingsService(getDatabase(), {
       logger: deferred.logger,
+      overrides: deploymentOverrides.overrides,
       ...(sharedSettingsCache === undefined ? {} : { sharedCache: sharedSettingsCache }),
     })
 
@@ -120,6 +125,7 @@ async function main(): Promise<void> {
       config,
       sessionStore,
       organizationSettings,
+      settingsOverrides: deploymentOverrides.overrides,
       readinessChecks,
       plugins: [
         createIdentityPlugin(),
@@ -143,6 +149,16 @@ async function main(): Promise<void> {
       { store: sessionRedis === undefined ? 'postgres' : 'redis' },
       'session store selected',
     )
+    if (deploymentOverrides.sources.length > 0) {
+      app.log.info(
+        {
+          sources: deploymentOverrides.sources,
+          file: deploymentOverrides.filePath ?? null,
+          managedSettings: deploymentOverrides.managedPaths.length,
+        },
+        'deployment settings overrides loaded',
+      )
+    }
 
     await app.listen({ port: config.port, host: config.host })
   } catch (error) {

@@ -30,6 +30,18 @@ const fullDocument: OrganizationSettings = {
     faviconUrl: '/static/favicon.ico',
     primaryColor: '#1f4b99',
     secondaryColor: '#d97706',
+    light: {
+      primaryColor: null,
+      secondaryColor: null,
+      backgroundColor: '#fbfaf7',
+      surfaceColor: '#ffffff',
+    },
+    dark: {
+      primaryColor: '#7c9cff',
+      secondaryColor: null,
+      backgroundColor: '#101418',
+      surfaceColor: '#1a2026',
+    },
   },
   navigationLinks: [
     { text: 'Docs', url: 'https://wiki.acme.com/golinks', adminOnly: false },
@@ -57,6 +69,18 @@ describe('defaults', () => {
         faviconUrl: null,
         primaryColor: null,
         secondaryColor: null,
+        light: {
+          primaryColor: null,
+          secondaryColor: null,
+          backgroundColor: null,
+          surfaceColor: null,
+        },
+        dark: {
+          primaryColor: null,
+          secondaryColor: null,
+          backgroundColor: null,
+          surfaceColor: null,
+        },
       },
       navigationLinks: [],
     })
@@ -256,6 +280,38 @@ describe('banner', () => {
 })
 
 describe('branding', () => {
+  it('fills both color schemes with nulls when a document names neither', () => {
+    const { branding } = OrganizationSettingsSchema.parse({ branding: { title: 'Acme' } })
+    expect(branding.light).toEqual({
+      primaryColor: null,
+      secondaryColor: null,
+      backgroundColor: null,
+      surfaceColor: null,
+    })
+    expect(branding.dark).toEqual(branding.light)
+  })
+
+  it('accepts one scheme color at a time and lowercases it', () => {
+    const { branding } = OrganizationSettingsSchema.parse({
+      branding: { dark: { backgroundColor: '#101418', primaryColor: '#7C9CFF' } },
+    })
+    expect(branding.dark.backgroundColor).toBe('#101418')
+    expect(branding.dark.primaryColor).toBe('#7c9cff')
+    expect(branding.dark.surfaceColor).toBeNull()
+    expect(branding.light.backgroundColor).toBeNull()
+  })
+
+  it('rejects a scheme color that is not #rrggbb and an unknown scheme field', () => {
+    expect(
+      OrganizationSettingsSchema.safeParse({ branding: { light: { backgroundColor: 'white' } } })
+        .success,
+    ).toBe(false)
+    expect(
+      OrganizationSettingsSchema.safeParse({ branding: { light: { accentColor: '#000000' } } })
+        .success,
+    ).toBe(false)
+  })
+
   it.each([
     ['no leading hash', '1f4b99'],
     ['three digits', '#fff'],

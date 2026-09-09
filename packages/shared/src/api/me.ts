@@ -19,6 +19,11 @@ export const AppInfoSchema = z.object({
   /** Hostname members type, shown in setup help and the OpenSearch descriptor. */
   shortHost: z.string().min(1),
   version: z.string().min(1),
+  /**
+   * Dotted settings paths the deployment fixes for every organization (spec 06 section 6),
+   * such as `branding.title`. The admin screen shows those fields as read-only.
+   */
+  managedSettings: z.array(z.string().min(1)).default([]),
 })
 export type AppInfo = z.infer<typeof AppInfoSchema>
 

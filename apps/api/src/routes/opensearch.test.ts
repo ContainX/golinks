@@ -21,6 +21,8 @@ function settingsWithTitle(title: string): OrganizationSettingsService {
     ensureOrganization: async () => {},
     getSettings: async () => settings,
     saveSettings: async () => settings,
+    managedPaths: () => [],
+    managedViolations: () => ({}),
     invalidate: () => {},
   }
 }

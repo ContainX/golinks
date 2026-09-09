@@ -65,6 +65,8 @@ describe('GET /me', () => {
       baseUrl: TEST_BASE_URL,
       shortHost: 'go',
       version: SERVICE_VERSION,
+      // This deployment fixes no settings of its own (spec 06 §6).
+      managedSettings: [],
     })
     expect(SERVICE_VERSION).toMatch(/^\d+\.\d+\.\d+/)
   })

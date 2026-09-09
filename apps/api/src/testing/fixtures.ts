@@ -4,6 +4,7 @@ import type { DeploymentConfig, EnvironmentInput } from '@golinks/shared/config'
 import type { InjectOptions } from 'fastify'
 import { type BuildAppOptions, buildApp } from '../app.ts'
 import { loadConfig } from '../config/load.ts'
+import { loadDeploymentSettingsOverrides } from '../organizations/deployment-overrides.ts'
 import type { GoLinksApp } from '../types.ts'
 
 export const CANONICAL_ORIGIN = 'https://links.example.com'
@@ -38,15 +39,22 @@ export interface TestAppOptions extends Omit<BuildAppOptions, 'config'> {
  * Injected requests carry the canonical host unless the test sets one of its own, because the
  * short-host bounce (spec 04 §2) answers everything that arrives under another name and
  * `app.inject` would otherwise address every request to `localhost`.
+ *
+ * A test names the settings its deployment fixes (spec 06 §6) either directly, through
+ * `settingsOverrides`, or through `CONFIG_DIR` and `SETTINGS_OVERRIDES_JSON` in `environment`,
+ * which are read here exactly as they are at startup.
  */
 export async function buildTestApp(options: TestAppOptions = {}): Promise<GoLinksApp> {
   const { config, environment, ...rest } = options
   const resolved = config ?? testConfig(environment)
+  const settingsOverrides =
+    rest.settingsOverrides ?? loadDeploymentSettingsOverrides(resolved).overrides
   const app = await buildApp({
     config: resolved,
     logger: false,
     webDistPath: null,
     ...rest,
+    settingsOverrides,
   })
   return withDefaultInjectedHost(app, resolved.canonicalHost)
 }

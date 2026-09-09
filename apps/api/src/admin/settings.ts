@@ -26,6 +26,7 @@ import type { DatabaseExecutor } from '../audit/index.ts'
 import { organizationSettingsUpdatedEvent, recordAuditEvents } from '../audit/index.ts'
 import type { Database } from '../db/client.ts'
 import { links, organizations } from '../db/schema/index.ts'
+import { validationFailed } from '../errors.ts'
 import { withKeywordLock } from '../links/index.ts'
 import {
   planSettingsUpdate,
@@ -100,6 +101,11 @@ export async function updateOrganizationSettings(
 ): Promise<OrganizationSettings> {
   const { db, organizationId, document, actorUserId } = input
   const requestId = input.requestId ?? null
+
+  // Spec 06 §6: a value the deployment fixes is refused here, before the lock is taken and
+  // before anything is read, and reported field by field like any other rejected document.
+  const managed = input.settings.managedViolations(document)
+  if (Object.keys(managed).length > 0) throw validationFailed(managed)
 
   const after = await withKeywordLock(
     db,

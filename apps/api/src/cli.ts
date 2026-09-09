@@ -5,13 +5,22 @@
 
 import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { runSettingsCommand } from './cli/settings.ts'
+import { ConfigurationError } from './config/load.ts'
 import { runMigrations } from './db/migrate.ts'
 
 const USAGE = `golinks <command>
 
 Commands:
-  migrate    Apply every pending database migration to DATABASE_URL.
-  help       Show this message.
+  migrate
+      Apply every pending database migration to DATABASE_URL.
+  settings import <organization-id> <file.json>
+      Apply an organization settings document, with the same rules and audit trail as the
+      admin API. An organization nobody has signed in to yet is created first.
+  settings export <organization-id>
+      Print an organization's effective settings document as JSON.
+  help
+      Show this message.
 `
 
 /**
@@ -50,6 +59,8 @@ async function main(argv: readonly string[]): Promise<number> {
   switch (command) {
     case 'migrate':
       return migrateCommand()
+    case 'settings':
+      return runSettingsCommand(argv.slice(1))
     case undefined:
     case 'help':
     case '--help':
@@ -63,6 +74,11 @@ async function main(argv: readonly string[]): Promise<number> {
 }
 
 const exitCode = await main(process.argv.slice(2)).catch((error: unknown) => {
+  // A configuration problem already reads as a list of what is wrong; a stack would only bury it.
+  if (error instanceof ConfigurationError) {
+    process.stderr.write(`${error.message}\n`)
+    return 78 // EX_CONFIG
+  }
   process.stderr.write(
     `${error instanceof Error ? (error.stack ?? error.message) : String(error)}\n`,
   )

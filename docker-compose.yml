@@ -79,6 +79,11 @@ services:
       INITIAL_ADMIN_EMAILS: ${INITIAL_ADMIN_EMAILS:-jane@widgets.test}
     ports:
       - '127.0.0.1:3000:3000'
+    # The deployment's own configuration (spec 06 section 6): ./config/settings.json fixes
+    # organization settings and ./config/branding holds the files served at /_/branding. The
+    # image already points CONFIG_DIR at /app/config, so mounting the directory is all it takes.
+    # volumes:
+    #   - ./config:/app/config:ro
     depends_on:
       postgres:
         condition: service_healthy

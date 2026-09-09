@@ -1,0 +1,15 @@
+{
+  "branding": {
+    "title": "Acme Links",
+    "logoUrl": "/_/branding/logo.svg",
+    "faviconUrl": "/_/branding/favicon.svg",
+    "primaryColor": "#1f4b99",
+    "secondaryColor": "#d97706",
+    "light": { "backgroundColor": "#f8f7f4" },
+    "dark": { "primaryColor": "#8fb0ff", "backgroundColor": "#0f1419", "surfaceColor": "#171d24" }
+  },
+  "navigationLinks": [
+    { "text": "Docs", "url": "https://wiki.acme.example/links", "adminOnly": false }
+  ],
+  "admins": ["ops@acme.example"]
+}

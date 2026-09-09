@@ -80,5 +80,9 @@ export function describeConfig(config: DeploymentConfig): Record<string, unknown
     metrics: config.metrics,
     jobs: { enabled: config.jobs.enabled },
     webDistPath: config.webDistPath ?? null,
+    settingsOverrides: {
+      configDir: config.configDir ?? null,
+      inline: config.settingsOverridesJson !== undefined,
+    },
   }
 }
