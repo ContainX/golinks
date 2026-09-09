@@ -21,6 +21,7 @@
     "@fastify/rate-limit": "^11.2.0",
     "@fastify/session": "^11.1.2",
     "@fastify/static": "^10.1.3",
+    "@fastify/swagger": "^9.8.1",
     "@golinks/shared": "workspace:*",
     "@prometheus-io/client": "^0.16.1",
     "drizzle-orm": "^0.45.2",

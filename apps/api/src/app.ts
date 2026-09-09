@@ -15,6 +15,7 @@ import { type Database, getDatabase } from './db/client.ts'
 import { registerErrorHandling } from './error-handler.ts'
 import { buildLoggerOptions, createRequestIdGenerator, REQUEST_ID_HEADER } from './logging.ts'
 import { registerMetrics } from './metrics/plugin.ts'
+import { registerOpenApi } from './openapi/plugin.ts'
 import {
   createOrganizationSettingsService,
   type OrganizationSettingsService,
@@ -148,6 +149,10 @@ export async function buildApp(options: BuildAppOptions): Promise<GoLinksApp> {
 
   registerOriginCheck(app, config)
   registerErrorHandling(app)
+
+  // Ahead of every route: the document generator collects routes through `onRoute`, so it has
+  // to have loaded before the first one is declared (spec 05 §1).
+  registerOpenApi(app)
 
   // Every plugin queued above has to be loaded before the first route is declared: Fastify
   // runs `onRoute` hooks as the route is declared, and that is how the rate limiter attaches
