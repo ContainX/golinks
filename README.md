@@ -40,7 +40,7 @@ Open http://localhost:5173. Health is at http://localhost:3000/_/health/ready.
 To sign in locally, print a link and open it in the browser:
 
 ```bash
-pnpm --filter @golinks/api sign-in-link owner@widgets.test       # an admin, per INITIAL_ADMIN_EMAILS in .env
+pnpm --filter @golinks/api sign-in-link jane@widgets.test        # an admin, per INITIAL_ADMIN_EMAILS in .env
 pnpm --filter @golinks/api sign-in-link sam@widgets.test /handbook   # a member, landing on a keyword
 ```
 

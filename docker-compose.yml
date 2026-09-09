@@ -75,6 +75,8 @@ services:
       AUTH_TEST_MODE: 'true'
       AUTH_TEST_SECRET: ${AUTH_TEST_SECRET:-development-only-test-sign-in-secret}
       AUTH_TEST_DOMAINS: ${AUTH_TEST_DOMAINS:-widgets.test,gizmos.test}
+      # The browser tests sign in as this address expecting an admin.
+      INITIAL_ADMIN_EMAILS: ${INITIAL_ADMIN_EMAILS:-jane@widgets.test}
     ports:
       - '127.0.0.1:3000:3000'
     depends_on:

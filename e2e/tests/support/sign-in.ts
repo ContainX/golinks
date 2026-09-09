@@ -15,7 +15,7 @@ export const ORGANIZATIONS = { widgets: 'widgets.test', gizmos: 'gizmos.test' } 
  * Every other address in the test domains signs in as an ordinary member, so a scenario that
  * needs both roles asks for this one and any unique address.
  */
-export const ADMIN_EMAIL = `jane@${ORGANIZATIONS.widgets}`
+export const ADMIN_EMAIL = process.env.E2E_ADMIN_EMAIL ?? `jane@${ORGANIZATIONS.widgets}`
 
 /**
  * An address nobody else in this run will use.

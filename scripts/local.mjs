@@ -8,15 +8,32 @@
 // used one stays signed in for thirty days). Ctrl+C stops everything.
 
 import { execFileSync, spawn } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 import { createInterface } from 'node:readline'
 
 const ROOT = new URL('..', import.meta.url).pathname
 const API = 'http://localhost:3000'
 const WEB = 'http://localhost:5173'
-const ADMIN = process.env.LOCAL_ADMIN_EMAIL ?? 'owner@widgets.test'
+const ADMIN = process.env.LOCAL_ADMIN_EMAIL ?? adminFromDotEnv() ?? 'jane@widgets.test'
 const MEMBER = process.env.LOCAL_MEMBER_EMAIL ?? 'sam@widgets.test'
 
 const children = []
+
+/** The first address INITIAL_ADMIN_EMAILS names in .env, so the links match the deployment. */
+function adminFromDotEnv() {
+  try {
+    const text = readFileSync(new URL('../.env', import.meta.url), 'utf8')
+    const line = text.split('\n').find((entry) => entry.startsWith('INITIAL_ADMIN_EMAILS='))
+    const first = line
+      ?.slice('INITIAL_ADMIN_EMAILS='.length)
+      .split(',')[0]
+      ?.trim()
+      .replace(/^["']|["']$/g, '')
+    return first ? first : undefined
+  } catch {
+    return undefined
+  }
+}
 
 function run(name, args, color) {
   const child = spawn('pnpm', args, {
