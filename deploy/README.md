@@ -31,7 +31,7 @@ Two names reach the same service. The canonical host is where members use the ap
 ## Before the first deploy
 
 1. **Choose the canonical origin** and obtain a certificate for it. This is `BASE_URL`, for example `https://links.example.com`. Everything else derives from it: cookie scope, the sign-in redirect URI, the short-host redirect.
-2. **Register the identity provider application.** For Okta, an OIDC Web Application with the Authorization Code grant. Sign-in redirect URI: `<BASE_URL>/_/auth/callback/oidc`. Sign-out redirect URI: `<BASE_URL>/`. Keep the client id and secret for the configuration. To make an Okta group admins, add the `groups` scope, expose a groups claim on the application, and set `OIDC_ADMIN_GROUPS` to the group name.
+2. **Register the identity provider application.** `okta.md` is the step-by-step guide to hand an Okta administrator. For Okta, an OIDC Web Application with the Authorization Code grant. Sign-in redirect URI: `<BASE_URL>/_/auth/callback/oidc`. Sign-out redirect URI: `<BASE_URL>/`. Keep the client id and secret for the configuration. To make an Okta group admins, add the `groups` scope, expose a groups claim on the application, and set `OIDC_ADMIN_GROUPS` to the group name.
 3. **Decide how organizations are resolved.** `ORG_RESOLUTION=domain` (the default) gives each email domain its own organization; `ORG_RESOLUTION=fixed` with `ORG_FIXED_ID` puts everyone in one. Most single-company deployments want `fixed`.
 4. **Name the first admins** in `INITIAL_ADMIN_EMAILS`, or rely on the provider's admin group.
 5. **Provide a database and, if needed, Redis**, reachable only from the service.

@@ -80,6 +80,8 @@ Everything is configured with environment variables; `.env.example` lists them a
 
 ### Okta setup
 
+`deploy/okta.md` is the full walkthrough for an Okta administrator, ending with the values to hand back. In short:
+
 1. In Okta, create an OIDC Web Application integration with the Authorization Code grant.
 2. Sign-in redirect URI: `<BASE_URL>/_/auth/callback/<OIDC_ID>`, where `OIDC_ID` is the provider id from your configuration (default `oidc`). Sign-out redirect URI: `<BASE_URL>/`.
 3. Set `OIDC_ISSUER` to the org authorization server (`https://acme.okta.com`) or a custom one (`https://acme.okta.com/oauth2/default`), plus the client id and secret.

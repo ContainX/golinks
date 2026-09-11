@@ -121,6 +121,8 @@ Reference: `terraform/aws-ecs/dns.tf`.
 
 ## 9. Identity provider
 
+Reference: `okta.md`, the administrator's walkthrough for Okta.
+
 - **Must** be an OIDC application using the authorization code grant. Sign-in redirect URI: `<BASE_URL>/_/auth/callback/oidc` (the last segment is `OIDC_ID`, `oidc` by default). Sign-out redirect URI: `<BASE_URL>/`.
 - **Must** issue the `openid`, `email`, and `profile` scopes. Add `groups` and a groups claim when `OIDC_ADMIN_GROUPS` is used.
 - **Must** be reachable from the tasks: the service fetches the provider's metadata and keys and exchanges codes server-side.
