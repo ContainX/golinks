@@ -26,7 +26,7 @@ load balancer ──────────────► service tasks (port 
                                          └─► Redis (optional)
 ```
 
-Two names reach the same service. The canonical host is where members use the app and where cookies live. The short host is what they type. Any request whose `Host` is not the canonical one is redirected by the service to the same path on the canonical origin, so the short host needs no certificate and no cookies: the load balancer just forwards it. Members' machines have to resolve the bare name `go`, which is a DNS matter inside the organization's network and is covered under **Making `go/` resolve** below.
+Two names reach the same service. The canonical host is where members use the app and where cookies live. The short host is what they type. Any request whose `Host` is not the canonical one is redirected by the service to the same path on the canonical origin, so the short host needs no certificate and no cookies: the load balancer just forwards it. That redirect is the only thing ever served over plain HTTP; the app, the API, sign-in, and the session cookie exist only on the canonical host over HTTPS. Members' machines have to resolve the bare name `go`, which is a DNS matter inside the organization's network and is covered under **Making `go/` resolve** below.
 
 ## Before the first deploy
 

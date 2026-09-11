@@ -36,7 +36,7 @@ Reference: `terraform/aws-ecs/ecs.tf`.
 
 Reference: `terraform/aws-ecs/alb.tf`.
 
-Two hostnames reach the same service. The **canonical host** is the one in `BASE_URL`; the **short host** is the bare name members type, `go` by default. The service redirects any request whose `Host` is not the canonical one to the same path on the canonical origin, so the short host needs neither a certificate nor cookies.
+Two hostnames reach the same service. The **canonical host** is the one in `BASE_URL`; the **short host** is the bare name members type, `go` by default. The service redirects any request whose `Host` is not the canonical one to the same path on the canonical origin, so the short host needs neither a certificate nor cookies. Everything the app serves, including sign-in, the API, and the session cookie, is HTTPS on the canonical host; the only response the service ever gives over plain HTTP is that redirect, and a browser typing `go/keyword` without a scheme always starts with HTTP, which is why port 80 has to exist at all. A deployment that rolls out the browser extension, which rewrites `go/keyword` to the HTTPS origin inside the browser, can close port 80 for those machines.
 
 - **Must** terminate TLS for the canonical host and forward to the tasks on port 3000 over HTTP.
 - **Must** forward port 80 to the tasks rather than redirecting it to HTTPS, because that is the port a bare `go/keyword` arrives on. The one rule: plain HTTP whose host header equals the canonical host is redirected to HTTPS at the edge.
