@@ -1,0 +1,70 @@
+# Copy to terraform.tfvars and fill in. Everything not listed here has a default that works.
+
+# --- Required ---------------------------------------------------------------
+
+region = "us-east-1"
+
+vpc_id             = "vpc-0123456789abcdef0"
+private_subnet_ids = ["subnet-0aaa111122223333a", "subnet-0bbb444455556666b"]
+public_subnet_ids  = ["subnet-0ccc777788889999c", "subnet-0ddd000011112222d"]
+
+# ACM certificate covering the canonical host, validated in the region above.
+certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/00000000-1111-2222-3333-444444444444"
+
+# The canonical origin. Members land here after typing the short host.
+base_url = "https://links.example.com"
+
+# The OIDC application. Register the oidc_redirect_uri output as its sign-in redirect URI.
+oidc_issuer        = "https://acme.okta.com/oauth2/default"
+oidc_client_id     = "0oa1example2client3id"
+oidc_client_secret = "put-it-in-a-variable-file-you-do-not-commit"
+
+# --- Usually set ------------------------------------------------------------
+
+# Pin a released tag instead of latest so a rollout is a change here and a rollback is the
+# line above it.
+image = "ghcr.io/containx/golinks:latest"
+
+# One organization for everybody, which is what a single-company deployment wants.
+org_resolution = "fixed"
+org_fixed_id   = "acme.example"
+
+# These addresses get the admin role the first time they sign in.
+initial_admin_emails = ["ops@acme.example"]
+
+# Admins from an identity provider group need the groups claim in the scopes.
+# oidc_scopes       = "openid email profile groups"
+# oidc_admin_groups = ["GoLinks Admins"]
+
+tags = {
+  Service = "golinks"
+  Owner   = "platform"
+}
+
+# --- Optional ---------------------------------------------------------------
+
+# Branding and other organization settings the deployment fixes, applied on every read.
+# settings_overrides = {
+#   branding = {
+#     title        = "Acme Links"
+#     logoUrl      = "https://assets.acme.example/logo.svg"
+#     primaryColor = "#1f4b99"
+#     dark         = { backgroundColor = "#0f1419" }
+#   }
+#   admins = ["ops@acme.example"]
+# }
+
+# Route 53 records. The canonical zone is the public one holding links.example.com. The short
+# host zone is normally a private hosted zone attached to the VPC, or the internal domain the
+# office and VPN resolvers serve.
+# canonical_zone_id  = "Z0123456789ABCDEFGHIJ"
+# short_host_zone_id = "Z9876543210JIHGFEDCBA"
+
+# Two tasks and a Redis replica for a deployment that should survive losing one.
+# desired_count            = 2
+# redis_num_cache_clusters = 2
+# db_multi_az              = true
+
+# Reachable only over the VPN.
+# internal_alb      = true
+# alb_ingress_cidrs = ["10.0.0.0/8"]

@@ -101,6 +101,8 @@ Build the image with `docker build -t golinks .` or pull a published image from 
 
 Logs are structured JSON on stdout with a request id on every line and on every response. Readiness is `/_/health/ready`, liveness `/_/health/live`, and Prometheus metrics are served at `/_/metrics` when `METRICS_ENABLED=true`. Any number of replicas can run once `REDIS_URL` is set; background jobs coordinate through Postgres advisory locks.
 
+`deploy/README.md` is the operator guide, and `deploy/terraform/aws-ecs/` stands the whole stack up on AWS with ECS Fargate, RDS, ElastiCache, and an Application Load Balancer.
+
 ## Customizing a deployment
 
 Everything an organization can brand lives in its settings document: title, logo, favicon, colors for the light and dark schemes, banner, navigation links, and the admin list. Admins edit it in the app. A deployment can also fix any of those values from the outside, which is how a container on Kubernetes or ECS comes up already branded, with no one signing in to set it up. The API describes every field at `/_/api/v1/openapi.json`.

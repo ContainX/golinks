@@ -42,6 +42,13 @@ pnpm exec biome check --write <paths>         # format/lint only what you touche
 - **Identity** (`apps/api/src/auth`): `completeSignIn` is the single entry for every sign-in method (OIDC, test token); guards `requireMember` / `requireAdmin`.
 - **Tests**: unit tests sit next to code (`*.test.ts`); integration tests live in `apps/api/test/integration` on the embedded Postgres harness (`useTestDatabase`, `resetDatabase`), with `sign-in.ts` (`buildIdentityApp`, `signIn`) for authenticated calls. Two organizations, `widgets.test` and `gizmos.test`, prove isolation.
 
+## Deploying and customizing a deployment
+
+- `deploy/README.md` is the operator guide: what runs, prerequisites, configuration, migrations as a one-off task, health and logs, scaling, DNS for the short host, troubleshooting. `deploy/terraform/aws-ecs/` is reference infrastructure for ECS Fargate, RDS, ElastiCache, and an ALB; its README is the runbook for that stack.
+- A deployment fixes organization settings without the admin screen through `CONFIG_DIR/settings.json` or `SETTINGS_OVERRIDES_JSON` (spec 06 §6; README "Customizing a deployment"; `examples/config/`). Only fields that leave stored links untouched are accepted; the rest go through `golinks settings import`. Files under `CONFIG_DIR/branding/` are served at `/_/branding/`.
+- Runtime branding comes from the settings document (`branding`, with `light`/`dark` scheme colors). A fork's build-time defaults go in `apps/web/src/branding/overrides.ts` and `fonts.ts`, which upstream never edits; do not put fork-specific values anywhere else in the web app.
+- Facts that bite on a real platform: the first migration runs `CREATE EXTENSION` (trusted extensions, so `CREATE` on the database suffices); both the canonical host and the bare short host must route to the service, with `TRUST_PROXY=true` behind a load balancer; Redis is required beyond one replica; `/_/metrics` is unauthenticated when enabled.
+
 ## Conventions
 
 - Documentation describes this product on its own terms. Do not compare it to, or reference, other go-link products.
