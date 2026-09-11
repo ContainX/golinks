@@ -7,7 +7,6 @@ import { AppProviders } from '../../app/AppProviders.tsx'
 import { errorResponse, jsonResponse, stubNavigation } from '../../test/api.ts'
 import { brandingFixture, meFixture } from '../../test/fixtures.ts'
 import { createTestQueryClient } from '../../test/render.tsx'
-import { SHORT_HOST_NOTICE_ID } from './notices.ts'
 import { ShellFrame } from './ShellFrame.tsx'
 
 const ME_URL = '/_/api/v1/me'
@@ -245,64 +244,6 @@ describe('the organization banner', () => {
   })
 })
 
-describe('the short-host notice', () => {
-  it('explains all three ways to make the short host resolve (spec 11)', async () => {
-    stubApi(meFixture())
-    renderShell()
-
-    expect(await screen.findByText(/Make go\/ work in your browser/)).toBeInTheDocument()
-    expect(screen.getByText(/CNAME/)).toBeInTheDocument()
-    expect(screen.getByText(/hosts-file entry/)).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: '/_/opensearch.xml' })).toBeInTheDocument()
-    expect(screen.getByText('links.example.com')).toBeInTheDocument()
-  })
-
-  it('starts folded to its title on a narrow screen and opens on request', async () => {
-    stubDevicePrefersDark(false, true)
-    stubApi(meFixture())
-    renderShell()
-
-    expect(await screen.findByText(/Make go\/ work in your browser/)).toBeInTheDocument()
-    expect(screen.queryByText(/hosts-file entry/)).toBeNull()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Show how' }))
-    expect(await screen.findByText(/hosts-file entry/)).toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Hide' }))
-    await waitFor(() => expect(screen.queryByText(/hosts-file entry/)).toBeNull())
-  })
-
-  it('records a dismissal against the member, keeping the other preferences', async () => {
-    const api = stubApi(meFixture({ user: { preferences: { colorScheme: 'dark' } } }))
-    renderShell()
-
-    fireEvent.click(await screen.findByRole('button', { name: 'Close' }))
-
-    await waitFor(() => expect(api.patched).toHaveLength(1))
-    expect(api.patched[0]).toEqual({
-      preferences: { colorScheme: 'dark', dismissedNotices: [SHORT_HOST_NOTICE_ID] },
-    })
-    await waitFor(() => expect(screen.queryByText(/Make go\/ work/)).toBeNull())
-  })
-
-  it('stays closed for a member who has already dismissed it', async () => {
-    stubApi(meFixture({ user: { preferences: { dismissedNotices: [SHORT_HOST_NOTICE_ID] } } }))
-
-    renderShell()
-
-    await accountButton()
-    expect(screen.queryByText(/Make go\/ work/)).toBeNull()
-  })
-
-  it('is not shown to someone with no session', async () => {
-    stubApi(null)
-    renderShell('/_/login')
-
-    await waitFor(() => expect(appBar()).toHaveTextContent('GoLinks'))
-    expect(screen.queryByText(/Make go\/ work/)).toBeNull()
-  })
-})
-
 describe('the account menu', () => {
   it('names the member, their role, and their organization', async () => {
     stubApi(memberFixture())
@@ -388,7 +329,7 @@ describe('the color scheme', () => {
 
   it('applies a change at once and records it against the member', async () => {
     const api = stubApi(
-      meFixture({ user: { preferences: { dismissedNotices: [SHORT_HOST_NOTICE_ID] } } }),
+      meFixture({ user: { preferences: { dismissedNotices: ['short-host-setup'] } } }),
     )
     renderShell()
 
@@ -398,7 +339,7 @@ describe('the color scheme', () => {
     await waitFor(() => expect(document.documentElement).toHaveAttribute('data-dark'))
     await waitFor(() => expect(api.patched).toHaveLength(1))
     expect(api.patched[0]).toEqual({
-      preferences: { dismissedNotices: [SHORT_HOST_NOTICE_ID], colorScheme: 'dark' },
+      preferences: { dismissedNotices: ['short-host-setup'], colorScheme: 'dark' },
     })
   })
 

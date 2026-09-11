@@ -1,15 +1,13 @@
-// The two things a member can settle for themselves, and the promise that both are remembered
+// The color scheme a member settles for themselves, and the promise that it is remembered
 // (ADR 0002 §5, §10, spec 01 §2.5).
 //
-// Both are stored against the account rather than the browser, so the check that matters is not
-// that the page changed but that it is still changed on the next visit — and, for the color
-// scheme, that it survives a browser with nothing left in its storage.
+// It is stored against the account rather than the browser, so the check that matters is not
+// that the page changed but that it is still changed on the next visit, and that it survives a
+// browser with nothing left in its storage.
 
 import { expect, test } from '@playwright/test'
 import { openUserMenu, patchedMe } from './support/screens.ts'
 import { ORGANIZATIONS, signIn, uniqueEmail } from './support/sign-in.ts'
-
-const SHORT_HOST_NOTICE = 'Make go/ work in your browser'
 
 test('a member fixes the color scheme to dark and it stays', async ({ page }) => {
   const email = uniqueEmail(ORGANIZATIONS.widgets)
@@ -31,20 +29,4 @@ test('a member fixes the color scheme to dark and it stays', async ({ page }) =>
   await page.evaluate(() => localStorage.clear())
   await page.reload()
   await expect(html).toHaveAttribute('data-dark', '')
-})
-
-test('a member closes the short-host notice for good', async ({ page }) => {
-  const email = uniqueEmail(ORGANIZATIONS.widgets)
-  await signIn(page, email)
-
-  const setup = page.getByRole('alert').filter({ hasText: SHORT_HOST_NOTICE })
-  await expect(setup).toContainText('A DNS record')
-
-  await Promise.all([patchedMe(page), setup.getByRole('button', { name: 'Close' }).click()])
-  await expect(setup).toHaveCount(0)
-
-  await page.reload()
-  await expect(page.getByRole('alert').filter({ hasText: SHORT_HOST_NOTICE })).toHaveCount(0)
-  // The screen behind it is still there, so the notice was closed rather than the page lost.
-  await expect(page.getByRole('button', { name: 'Create', exact: true })).toBeVisible()
 })
