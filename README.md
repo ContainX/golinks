@@ -168,3 +168,7 @@ A fork that wants different visual defaults, rather than per-deployment settings
 - `apps/web/src/branding/fonts.ts`: the font packages the app bundles. Swap the imports here and name the families in `overrides.ts`.
 
 Keep everything else in `apps/web/src/app/theme.ts` as it is and merges from upstream stay clean.
+
+## License
+
+Apache License 2.0. See `LICENSE`.

@@ -1,6 +1,6 @@
 {
   "name": "golinks",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "description": "Short links for organizations: go/keyword redirects to a destination URL.",
   "engines": {

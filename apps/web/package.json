@@ -1,6 +1,6 @@
 {
   "name": "@golinks/web",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "description": "GoLinks web app: directory, link management, and administration.",
