@@ -22,7 +22,7 @@ test-results/
 .postgres-embedded/
 
 # Design documents stay local to this working copy
-docs/
+docs/decisions/
 
 # Issue tracking data stays local
 .beads/
