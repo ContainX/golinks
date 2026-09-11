@@ -12,8 +12,9 @@
 import { resolveOrganizationId } from '@golinks/shared/organizations'
 import { eq } from 'drizzle-orm'
 import type { FastifyRequest } from 'fastify'
+import { recordAuditEvent } from '../audit/index.ts'
 import type { Database } from '../db/client.ts'
-import { auditEvents, type UserRow, users } from '../db/schema/index.ts'
+import { type UserRow, users } from '../db/schema/index.ts'
 import type { CurrentMember } from '../types.ts'
 import { SignInError } from './errors.ts'
 import { memberCacheOf } from './member-cache.ts'
@@ -226,20 +227,15 @@ export async function completeSignIn(
   return { member, isFirstSignIn: upserted.isFirstSignIn, roleSource: row.roleSource }
 }
 
-/**
- * Writes the `user.created` event of spec 01 §2.2.
- *
- * TODO: the audit module owns event writing; this insert moves behind its recorder once that
- * lands, without changing what the row says.
- */
+/** Writes the `user.created` event of spec 01 §2.2 through the audit recorder (spec 07 §1). */
 async function recordUserCreated(request: FastifyRequest, row: UserRow): Promise<void> {
-  await request.server.db.insert(auditEvents).values({
+  await recordAuditEvent(request.server.db, {
     organizationId: row.organizationId,
     type: 'user.created',
     // A member's creation is caused by that member arriving, so they are their own actor.
     actorUserId: row.id,
     objectType: 'user',
-    objectId: String(row.id),
+    objectId: row.id,
     data: {
       email: row.email,
       role: row.role,
