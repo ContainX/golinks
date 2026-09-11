@@ -5,7 +5,9 @@ GoLinks is a self-hosted short-link service. A member types a memorable keyword 
 an organization and are visible only to its members.
 
 This Terraform module stands one deployment up on AWS. It is a single flat root module: clone
-it, fill in a handful of values, and apply.
+it, fill in a handful of values, and apply. An organization that builds with its own modules
+instead can follow `../../REQUIREMENTS.md`, which states what every component must provide and
+names the file here that provides it.
 
 ## What it creates
 

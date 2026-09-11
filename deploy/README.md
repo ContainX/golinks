@@ -1,6 +1,6 @@
 # Deploying GoLinks
 
-This guide is for whoever stands the service up and keeps it running. It describes what runs, what it needs from the platform around it, and the handful of operations that come up after the first deploy. Reference infrastructure for AWS lives in `terraform/aws-ecs/`; the guide is written so that any platform can follow it.
+This guide is for whoever stands the service up and keeps it running. It describes what runs, what it needs from the platform around it, and the handful of operations that come up after the first deploy. Reference infrastructure for AWS lives in `terraform/aws-ecs/`; the guide is written so that any platform can follow it, and `REQUIREMENTS.md` states, component by component, what any implementation must provide, for organizations that build with their own modules.
 
 ## What runs
 
