@@ -10,6 +10,10 @@ Highlights:
 - Sign-in through Okta or any OpenID Connect provider; admins can come from IdP groups.
 - Postgres for storage, optional Redis for sessions and caches, one container image.
 
+## Contributing
+
+`CONTRIBUTING.md` lists what every change is held to: the specs as the source of truth, the checks to run, the conventions, and the rules that are easy to break.
+
 ## Repository layout
 
 ```
