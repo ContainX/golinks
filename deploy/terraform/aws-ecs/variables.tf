@@ -294,7 +294,7 @@ variable "redis_num_cache_clusters" {
 # ---------------------------------------------------------------------------
 
 variable "image" {
-  description = "Container image. Pin a released tag such as ghcr.io/containx/golinks:v1.4.0 so that a rollout is a change to this value and a rollback is the previous one."
+  description = "Container image. Pin a released tag such as ghcr.io/containx/golinks:1.4.0 (the git tag v1.4.0 publishes the image tag 1.4.0) so that a rollout is a change to this value and a rollback is the previous one."
   type        = string
   default     = "ghcr.io/containx/golinks:latest"
 }

@@ -22,7 +22,7 @@ Every item is marked **must** (the service does not work without it) or **should
 
 Reference: `terraform/aws-ecs/ecs.tf`.
 
-- **Must** run `ghcr.io/containx/golinks:<tag>`, built for `linux/amd64`. Pin a release tag. The container listens on port 3000 and runs as the unprivileged `node` user (uid 1000); nothing in it needs root, a writable root filesystem, or extra capabilities.
+- **Must** run `ghcr.io/containx/golinks:<tag>`, built for `linux/amd64`. Pin a release tag: the git tag `v1.4.0` publishes the image tag `1.4.0`; `latest` follows every merge to `main` and `sha-<short>` names every build. The container listens on port 3000 and runs as the unprivileged `node` user (uid 1000); nothing in it needs root, a writable root filesystem, or extra capabilities.
 - **Must** set the environment in section 5 and inject the secrets in section 6. `AUTH_TEST_MODE` must never be set; the service refuses to start with it under `NODE_ENV=production`, which the image sets.
 - **Must** give the tasks egress to the image registry, the identity provider, and whatever the platform needs for secrets and logs. Nothing else is called.
 - **Should** run in private subnets with no public address; the ingress is the only thing that needs to be reachable.

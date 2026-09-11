@@ -103,7 +103,7 @@ The reverse proxy must route both the short host and the canonical host to the s
 
 ## Production
 
-Build the image with `docker build -t golinks .` or pull a published image from the GitHub Container Registry. The container runs the API, serves the web app, and applies migrations on start when `MIGRATE_ON_START=true` (or run `golinks migrate` as a separate deploy step). Postgres is the only stateful dependency; Redis holds sessions and caches and can be flushed at any time.
+Build the image with `docker build -t golinks .` or pull a published image from the GitHub Container Registry: `ghcr.io/containx/golinks:1.4.0` for the release tagged `v1.4.0`, or `latest` for the current `main`. The container runs the API, serves the web app, and applies migrations on start when `MIGRATE_ON_START=true` (or run `golinks migrate` as a separate deploy step). Postgres is the only stateful dependency; Redis holds sessions and caches and can be flushed at any time.
 
 Logs are structured JSON on stdout with a request id on every line and on every response. Readiness is `/_/health/ready`, liveness `/_/health/live`, and Prometheus metrics are served at `/_/metrics` when `METRICS_ENABLED=true`. Any number of replicas can run once `REDIS_URL` is set; background jobs coordinate through Postgres advisory locks.
 
